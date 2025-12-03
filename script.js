@@ -7,6 +7,29 @@ function getClampedNumber(id, min, max, def) {
   el.value = v;            // write back clamped value
   return v;
 }
+function linkSliderAndBox(rangeId, boxId, min, max, def) {
+  const range = document.getElementById(rangeId);
+  const box   = document.getElementById(boxId);
+
+  // initial sync
+  range.value = box.value = def;
+
+  range.addEventListener('input', () => {
+    box.value = range.value;
+    computeAll();
+  });
+
+  box.addEventListener('input', () => {
+    // clamp in box, then sync to range
+    let v = parseFloat(box.value);
+    if (isNaN(v)) v = def;
+    if (v < min) v = min;
+    if (v > max) v = max;
+    box.value = v;
+    range.value = v;
+    computeAll();
+  });
+}
 
 function computeAll() {
   // ---- INPUTS ----
@@ -129,5 +152,14 @@ document.querySelectorAll('input').forEach(input => {
   input.addEventListener('input', computeAll);
 });
 
-// initial run
-window.addEventListener('load', computeAll);
+window.addEventListener('load', () => {
+  // link sliders with boxes
+  linkSliderAndBox('H_frame_range', 'H_frame', 200, 2000, 1000);
+  linkSliderAndBox('W_frame_range', 'W_frame', 300, 2000, 1000);
+  linkSliderAndBox('D_frame_range', 'D_frame', 300, 2000, 600);
+
+  // add more if you create sliders for n_low, n_mid, n_high, etc.
+  // linkSliderAndBox('n_low_range', 'n_low', 0, 20, 6);
+
+  computeAll();
+});
