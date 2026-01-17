@@ -1,3 +1,27 @@
+def calculate_toolbox_frame(drawers, slide_thickness=25, frame_clearance=50, nl=1, nm=2, nh=1):
+    dims = drawers['dimensions']
+    
+    # Dynamic total height from quantities
+    h_total = (drawers['low']['height'] * nl + 
+               drawers['mid']['height'] * nm + 
+               drawers['high']['height'] * nh)
+    
+    n_drawers = nl + nm + nh
+    spacing_total = (n_drawers + 1) * 10
+    
+    frame_inner_h = h_total + spacing_total
+    frame_inner_w = dims['Wo'] + 2 * slide_thickness
+    frame_outer_d = dims['Do'] + frame_clearance
+    
+    return {
+        'inner_height': frame_inner_h,
+        'inner_width': frame_inner_w,
+        'outer_depth': frame_outer_d,
+        'spacing_used': spacing_total,
+        'slides_width': 2 * slide_thickness,
+        'n_drawers': n_drawers
+    }
+
 def calculate_drawer(Wi, Di, hl, hm, hh, t=15, td=6, Cp=30, Cb=10):
     """
     Calculate cost and cutlist for drawer boxes.
@@ -60,14 +84,14 @@ def generate_cutlist(Wi, Di, h, Wo, Do, Wb, Db, qty=1):
             'Part': 'Fronts',
             'Qty': 2 * qty,
             'Width (mm)': Wi,
-            'Height (mm)': h,
+            'Height (mm)': None,
             'Depth (mm)': '-'
         },
         {
             'Part': 'Sides',
             'Qty': 2 * qty,
             'Width (mm)': Do,
-            'Height (mm)': h,
+            'Height (mm)': None,
             'Depth (mm)': '-'
         },
         {
