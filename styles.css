@@ -1,0 +1,43 @@
+/* MINIMAL: Just fix sidebar width + text readability, NO backgrounds */
+
+/* Sidebar: 400px wide */
+section[data-testid="stSidebar"] {
+    width: 400px !important;
+}
+section[data-testid="stSidebar"][aria-expanded="true"] > div:first-child {
+    width: 400px !important;
+}
+section[data-testid="stSidebar"][aria-expanded="false"] > div:first-child {
+    width: 400px !important;
+    margin-left: -400px;
+}
+
+/* ONLY text fixes - DEFAULT backgrounds everywhere */
+.stCaptionBlock p, .stCaptionBlock {
+    color: #333 !important;
+    font-size: 14px !important;
+    font-weight: normal !important;
+}
+
+/* Readable metrics - NO backgrounds */
+.stMetricLabel { 
+    color: #333 !important; 
+    font-weight: 600 !important; 
+}
+.stMetricValue { 
+    color: #2e7d32 !important;  /* Dark green */
+    font-size: 1.8em !important; 
+}
+
+/* Clean cards - WHITE background only */
+[data-testid="column"] {
+    background: white !important;
+    border-radius: 4px !important;
+    box-shadow: none !important;
+    padding: 12px !important;
+}
+
+/* Title orange */
+h1 { color: #ff7043 !important; }
+
+/* NO OTHER CHANGES - defaults everywhere else */
