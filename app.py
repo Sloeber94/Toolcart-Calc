@@ -59,7 +59,7 @@ with st.sidebar:
 
 
 
-    tabs = st.tabs(["Input", "Constants"])  # Type hint for clarity
+    tabs = st.tabs(["Input", "Constants", "Fine-tuning"])  # Type hint for clarity
     # TAB 0: INPUTS - Fixed formats
     with tabs[0]:
         # Width
@@ -186,8 +186,10 @@ with st.sidebar:
             frame_clear = 50
             tUprights=w4080
         with col2:
-            frame_clear_man = st.number_input("Rear Clearance", value=frame_clear, min_value=0, max_value=100, step=1, help="Changes on profile selection, change only when required.")
+                front_clear_man = st.number_input("Front Clearance", value=sFront, min_value=0, max_value=100, step=1, help="Optional: change distance from drawer slides to front of frame or leave as is")
+                frame_clear_man = st.number_input("Rear Clearance", value=frame_clear, min_value=0, max_value=100, step=1, help="Changes on profile selection, change only when required.")
         sRear = frame_clear_man
+        sFront = front_clear_man
 
         st.subheader("Wood Dimensions")
         col1, col2, col3 = st.columns([2,2,2])
@@ -214,6 +216,27 @@ with st.sidebar:
                 format="%.0f mm",
                 help="Default to <50% of Plywood thickness",
             )
+
+    # TAB 2: FINE-TUNING
+    with tabs[2]:
+        st.subheader("Fine-tuning Adjustments")
+        st.write("If you want rounded frame dimensions, e.g., 1200mm instead of 1184mm, use these adjustments to fine-tune the final frame sizes.")
+
+        adjust_outer_width = st.number_input("Adjust Frame Outer Width (mm)", value=0, min_value=-100, max_value=100, step=1)
+        adjust_outer_depth = st.number_input("Adjust Frame Outer Depth (mm)", value=0, min_value=-100, max_value=100, step=1)
+        adjust_outer_height = st.number_input("Adjust Frame Outer Height (mm)", value=0, min_value=-100, max_value=100, step=1)
+        adjust_inner_width = st.number_input("Adjust Frame Inner Width (mm)", value=0, min_value=-100, max_value=100, step=1)
+        adjust_inner_depth = st.number_input("Adjust Frame Inner Depth (mm)", value=0, min_value=-100, max_value=100, step=1)
+        adjust_inner_height = st.number_input("Adjust Frame Inner Height (mm)", value=0, min_value=-100, max_value=100, step=1)
+        adjust_drawer_spacing = st.number_input("Adjust Drawer Spacing (mm)", value=0, min_value=-50, max_value=50, step=1)
+
+        st.write("**How adjustments affect dimensions:**")
+        st.write("- **Adjust Frame Outer Width:** Modifies drawer width.")
+        st.write("- **Adjust Frame Inner Width:** Modifies drawer width.")
+        st.write("- **Adjust Frame Outer Depth:** Plays with front clearance, rear clearance, or drawer depth.")
+        st.write("- **Adjust Frame Inner Depth:** Plays with front clearance, rear clearance, or drawer depth.")
+        st.write("- **Adjust Frame Outer Height:** Modifies castors height, tabletop thickness, top/middle/bottom drawer height, or drawer spacing.")
+        st.write("- **Adjust Frame Inner Height:** Modifies top/middle/bottom drawer height or drawer spacing.")
 
 
 
@@ -247,6 +270,15 @@ frmDi = frmDo-2*tUprights
 trlH = frmHo+hCastors+tTbl
 trlW=frmWo
 trlD=frmDo
+
+# Apply fine-tuning adjustments
+frmWo += adjust_outer_width
+frmDo += adjust_outer_depth
+frmHo += adjust_outer_height
+frmWi += adjust_inner_width
+frmDi += adjust_inner_depth
+frmHi += adjust_inner_height
+sDrwTot += adjust_drawer_spacing
 # -----------------------------
 # FRAME DISPLAY
 # -----------------------------
