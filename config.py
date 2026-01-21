@@ -1,4 +1,5 @@
 """Drawer Calculator Defaults + Sliders"""
+from typing import Dict, Tuple, Any
 
 # Fixed Defaults
 DEFAULTS = {
@@ -19,8 +20,8 @@ DEFAULTS = {
     "td": 6.0, "t": 15.0,
 }
 
-# Slider Tuples: (min, max, default, step)
-SLIDERS = {
+# Slider Tuples: (min, max, default, step)  # Use TypedDict for better typing
+SLIDERS: Dict[str, Tuple[float, float, float, float]] = {
     # Dimensions
     "Wi": (50, 2000, DEFAULTS["Wi"], 10),
     "Di": (50, 2000, DEFAULTS["Di"], 10),
@@ -39,7 +40,7 @@ SLIDERS = {
     "slide_price": (5.0, 25.0, DEFAULTS["slide_price"], 0.5),
     "slide_thick": (10.0, 30.0, DEFAULTS["slide_thick"], 0.1),
 }
-
+  # Consider using a dataclass for DEFAULTS to avoid dict access errors
 # Number Input Ranges (min, max, step)
 NUMBER_RANGES = {
     "Cp": (5.0, 100.0, 1.0),

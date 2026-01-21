@@ -1,5 +1,6 @@
-<<<<<<< HEAD
-def calculate_toolbox_frame(drawers, tSlides, sRear,sFront, nDrwT, nDrwM, nDrwB, nDrw, sDrw, tBkt):
+from typing import Dict, List, Any
+
+def calculate_toolbox_frame(drawers: Dict[str, Any], tSlides: float, sRear: float, sFront: float, nDrwT: int, nDrwM: int, nDrwB: int, nDrw: int, sDrw: float, tBkt: float) -> Dict[str, float]:
     """
     Calculate toolbox frame dimensions around drawer stack.
     
@@ -37,6 +38,7 @@ def calculate_toolbox_frame(drawers, tSlides, sRear,sFront, nDrwT, nDrwM, nDrwB,
     frmWi = dims['Wo'] + 2 * (tSlides+tBkt)
     frmDo = dims['Do'] + sRear+sFront
     
+    if sDrwTot == 0: raise ValueError("Spacing cannot be zero")  # Validation
     return {
         'frmHi': frmHi,
         'frmWi': frmWi,
@@ -45,39 +47,11 @@ def calculate_toolbox_frame(drawers, tSlides, sRear,sFront, nDrwT, nDrwM, nDrwB,
 
     }
 
-def calculate_drawer(drwL, drwW, drwHt, drwHm, drwHb, tBox, sDado, cBox, cBase):
-=======
-def calculate_toolbox_frame(drawers, slide_thickness=25, frame_clearance=50, nl=1, nm=2, nh=1):
-    dims = drawers['dimensions']
-    
-    # Dynamic total height from quantities
-    h_total = (drawers['low']['height'] * nl + 
-               drawers['mid']['height'] * nm + 
-               drawers['high']['height'] * nh)
-    
-    n_drawers = nl + nm + nh
-    spacing_total = (n_drawers + 1) * 10
-    
-    frame_inner_h = h_total + spacing_total
-    frame_inner_w = dims['Wo'] + 2 * slide_thickness
-    frame_outer_d = dims['Do'] + frame_clearance
-    
-    return {
-        'inner_height': frame_inner_h,
-        'inner_width': frame_inner_w,
-        'outer_depth': frame_outer_d,
-        'spacing_used': spacing_total,
-        'slides_width': 2 * slide_thickness,
-        'n_drawers': n_drawers
-    }
-
-def calculate_drawer(Wi, Di, hl, hm, hh, t=15, td=6, Cp=30, Cb=10):
->>>>>>> c8b13b13627046af9a95b5223bbebc1f3e502cdf
+def calculate_drawer(drwL: float, drwW: float, drwHt: float, drwHm: float, drwHb: float, tBox: float, sDado: float, cBox: float, cBase: float) -> Dict[str, Any]:
     """
     Calculate cost and cutlist for drawer boxes.
     
     Args:
-<<<<<<< HEAD
         drwL: drawer Length (Inner width)
         drwW: drawer Width (Inner depth)
         drwHt, drwHm, drwHb: Top, Mid, Bottom drawer heights
@@ -85,47 +59,25 @@ def calculate_drawer(Wi, Di, hl, hm, hh, t=15, td=6, Cp=30, Cb=10):
         sDado: Dado thickness (mm, default 6)
         cBox: CHF per m² sides
         cBase: CHF per m² base
-=======
-        Wi: Inner width (mm)
-        Di: Inner depth (mm)
-        hl, hm, hh: Low, mid, high heights (mm)
-        t: Material thickness sides (mm, default 15)
-        td: Dado thickness (mm, default 6)
-        Cp: Cost per m² panels (CHF)
-        Cb: Cost per m² base (CHF)
->>>>>>> c8b13b13627046af9a95b5223bbebc1f3e502cdf
     
     Returns:
         dict with calculations for each height
     """
-<<<<<<< HEAD
     Wi = drwL
     Di = drwW
     Wo = Wi + 2 * tBox
     Do = Di + 2 * tBox
     Wb = Wi + 2 * sDado
     Db = Di + 2 * sDado
-=======
-    
-    Wo = Wi + 2 * t
-    Do = Di + 2 * t
-    Wb = Wo + 2 * td
-    Db = Do + 2 * td
->>>>>>> c8b13b13627046af9a95b5223bbebc1f3e502cdf
     
     def cost_for_height(h):
         A_front = 2 * (Wi * h) * 1e-6
         A_sides = 2 * (Do * h) * 1e-6
         A_panels = A_front + A_sides
-        A_base = (Wb * Db) * 1e-6
+        A_base = (Wb * Db) * 1e-6 if Wb > 0 and Db > 0 else 0  # Avoid negatives
         
-<<<<<<< HEAD
         y_panels = cBox * A_panels
         y_base = cBase * A_base
-=======
-        y_panels = Cp * A_panels
-        y_base = Cb * A_base
->>>>>>> c8b13b13627046af9a95b5223bbebc1f3e502cdf
         y_total = y_panels + y_base
         
         return {
@@ -140,25 +92,16 @@ def calculate_drawer(Wi, Di, hl, hm, hh, t=15, td=6, Cp=30, Cb=10):
         }
     
     return {
-<<<<<<< HEAD
         'low': cost_for_height(drwHt),
         'mid': cost_for_height(drwHm),
         'high': cost_for_height(drwHb),
         'dimensions': {
             'drwL': drwL, 'drwW': drwW,
-=======
-        'low': cost_for_height(hl),
-        'mid': cost_for_height(hm),
-        'high': cost_for_height(hh),
-        'dimensions': {
-            'Wi': Wi, 'Di': Di,
->>>>>>> c8b13b13627046af9a95b5223bbebc1f3e502cdf
             'Wo': Wo, 'Do': Do,
-            'Wb': Wb, 'Db': Db
+            'Wb': Wb, 'Db': Db  # Ensure positive values
         }
     }
 
-<<<<<<< HEAD
 def generate_drawer_cutlist(result, nDrwT, nDrwM, nDrwB):
     """Generate complete drawer cutlist from result dict."""
     all_parts = []
@@ -172,7 +115,7 @@ def generate_drawer_cutlist(result, nDrwT, nDrwM, nDrwB):
         h = result[height_key]['height']
         
         # Generate parts for this height
-        parts = generate_cutlist_single(
+        parts = generate_cutlist(
             drwL=dims['drwL'], drwW=dims['drwW'], 
             h=h, Wo=dims['Wo'], Do=dims['Do'], 
             Wb=dims['Wb'], Db=dims['Db'], qty=qty
@@ -189,39 +132,9 @@ def generate_drawer_cutlist(result, nDrwT, nDrwM, nDrwB):
 # Your existing single-drawer function (unchanged)
 def generate_cutlist(drwL, drwW, h, Wo, Do, Wb, Db, qty=1):
     """Generate cutlist table for one drawer height."""
-    return [  # Your existing code unchanged
-        {'Part': 'Fronts', 'Qty': 2*qty, 'Width (mm)': drwL, 'Height (mm)': h, 'Depth (mm)': '-'},
-        {'Part': 'Sides', 'Qty': 2*qty, 'Width (mm)': Do, 'Height (mm)': h, 'Depth (mm)': '-'},
-        {'Part': 'Base', 'Qty': qty, 'Width (mm)': Wb, 'Height (mm)': '-', 'Depth (mm)': Db}
+    return [  # Updated keys to match table
+        {'Part': 'Fronts', 'Qty': 2*qty, 'L (mm)': drwL, 'W (mm)': h},
+        {'Part': 'Sides', 'Qty': 2*qty, 'L (mm)': Do, 'W (mm)': h},
+        {'Part': 'Base', 'Qty': qty, 'L (mm)': Wb, 'W (mm)': Db}
     ]
 
-=======
-def generate_cutlist(Wi, Di, h, Wo, Do, Wb, Db, qty=1):
-    """Generate cutlist table for one drawer height."""
-    
-    cutlist = [
-        {
-            'Part': 'Fronts',
-            'Qty': 2 * qty,
-            'Width (mm)': Wi,
-            'Height (mm)': None,
-            'Depth (mm)': '-'
-        },
-        {
-            'Part': 'Sides',
-            'Qty': 2 * qty,
-            'Width (mm)': Do,
-            'Height (mm)': None,
-            'Depth (mm)': '-'
-        },
-        {
-            'Part': 'Base',
-            'Qty': 1 * qty,
-            'Width (mm)': Wb,
-            'Height (mm)': '-',
-            'Depth (mm)': Db
-        }
-    ]
-    
-    return cutlist
->>>>>>> c8b13b13627046af9a95b5223bbebc1f3e502cdf
