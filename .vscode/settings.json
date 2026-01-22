@@ -1,0 +1,10 @@
+{
+    "chat.mcp.serverSampling": {
+        "Toolcart/.vscode/mcp.json: perplexity": {
+            "allowedModels": [
+                "copilot/auto"
+            ]
+        }
+    },
+    "CodeGPT.apiKey": "OpenAI"
+}
