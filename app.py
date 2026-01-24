@@ -16,12 +16,12 @@ load_css()
 st.set_page_config(page_title="Drawer Calculator", layout="wide")
 
 
-st.title("🔨 Verschraubt.ch: Tool Trolley Project Calculator")
+st.title("Tool Trolley Project Calculator")
 st.markdown(
     "Fully customizable by you, just enter your requirements and let it calculate your materials."
 )
 with st.sidebar:
-    st.header("📏 Configuration")
+    st.header("Configuration")
     gf_mode = st.sidebar.checkbox("Gridfinity Mode")
 
     #gridfinity units
@@ -282,7 +282,7 @@ sDrwTot += adjust_drawer_spacing
 # -----------------------------
 # FRAME DISPLAY
 # -----------------------------
-st.subheader("🛠️ Tool Trolley frame dimensions")
+st.subheader("Tool Trolley frame dimensions")
 col1, col2, col3 = st.columns(3)
 with col1:
     st.metric("Frame outer Width", f"{frmWo:.0f} mm")
@@ -318,7 +318,7 @@ with st.expander("Frame Details"):
 # -----------------------------
 # CUTLIST (MERGED)
 # -----------------------------
-st.subheader("📋 Cutlist of Wood and Profiles")
+st.subheader("Cutlist of Wood and Profiles")
 
 # After result = calculate_drawer(...)
 drawer_parts = generate_drawer_cutlist(result, nDrwT, nDrwM, nDrwB)
@@ -340,7 +340,7 @@ st.dataframe(df_merged)
 
 # PRICE SUMMARY  # Extract to function for separation of concerns
 # -----------------------------
-st.subheader("💰 Cost Summary")
+st.subheader("Cost Summary")
 
 # Drawer costs (total wood area × price/m²)
 drawers_area_panels = (result["low"]["A_panels_m2"] * nDrwT + 
@@ -369,13 +369,13 @@ cost_hardware = cost_slides + cost_brackets  # + castors + tabletop + fasteners 
 
 col1, col2, col3, col4 = st.columns(4)
 with col1:
-    st.metric("🪵 Drawers Panels", f"CHF {cost_drawers_panels:.1f}")
+    st.metric("Drawers Panels", f"CHF {cost_drawers_panels:.1f}")
 with col2:
-    st.metric("🪵 Drawers Bases", f"CHF {cost_drawers_bases:.1f}")
+    st.metric("Drawers Bases", f"CHF {cost_drawers_bases:.1f}")
 with col3:
-    st.metric("🔩 Slides+Brackets", f"CHF {cost_hardware:.1f}")
+    st.metric("Slides+Brackets", f"CHF {cost_hardware:.1f}")
 with col4:
-    st.metric("🏗️ Frame", "TBD")  # TODO: profile cutlist
+    st.metric("Frame", "TBD")  # TODO: profile cutlist
 
 # GRAND TOTAL
 total_cost: float = cost_drawers_total + cost_hardware  # + cost_frame later  # Type hint
