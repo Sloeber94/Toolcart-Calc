@@ -16,12 +16,12 @@ load_css()
 st.set_page_config(page_title="Drawer Calculator", layout="wide")
 
 
-st.title('[Verschraubt.ch - Tool Trolley Project Calculator](https://verschraubt.ch)')
+st.title("🔨 Verschraubt.ch: Tool Trolley Project Calculator")
 st.markdown(
     "Fully customizable by you, just enter your requirements and let it calculate your materials."
 )
 with st.sidebar:
-    st.header("Configuration")
+    st.header("📏 Configuration")
     gf_mode = st.sidebar.checkbox("Gridfinity Mode")
 
     #gridfinity units
@@ -217,136 +217,26 @@ with st.sidebar:
                 help="Default to <50% of Plywood thickness",
             )
 
-    
-        # TAB 3: FINE-TUNING
+    # TAB 2: FINE-TUNING
     with tabs[2]:
-        st.title("🎯 Fine-tuning")
-        
-        st.info("Adjust dimensions below. Results update on the right →")
-        
-        st.markdown("---")
-        
-        # ADJUST FRAME WIDTH
-        st.subheader("📏 Frame Width")
-        st.caption("Controlled by drawer width or panel thickness")
-        
-        drwL = st.slider(
-            f"Drawer Width [{lblQt}]",
-            min_value=float(drwMin),
-            max_value=float(drwMax),
-            value=float(drwDef),
-            step=float(drwStep),
-            key="fine_drwL"
-        )
-        tBox = st.slider("Plywood thickness", 0, 30, tBox, 1, format="%.0f mm", key="fine_tBox")
-        
-        st.markdown("---")
-        
-        # ADJUST FRAME DEPTH
-        st.subheader("📏 Frame Depth")
-        
-        drwW = st.slider(
-            f"Drawer Depth [{lblQt}]",
-            min_value=float(drwMin),
-            max_value=float(drwWmax),
-            value=float(drwDef),
-            step=float(drwStep),
-            key="fine_drwW"
-        )
-        
-        st.markdown("**Dead Space:**")
-        sRear = st.number_input(
-            "Rear Spacing [mm]",
-            min_value=0,
-            max_value=100,
-            value=40,
-            step=5,
-            key="fine_sRear"
-        )
-        
-        sFront = st.number_input(
-            "Front Spacing [mm]",
-            min_value=0,
-            max_value=100,
-            value=5,
-            step=5,
-            key="fine_sFront"
-        )
-        
-        st.markdown("---")
-        
-        # ADJUST FRAME HEIGHT
-        st.subheader("📏 Frame Height")
-        
-        drwHt = st.slider(
-            f"Top Drawer Height [{lblQt}]",
-            min_value=hMin,
-            max_value=hMax,
-            value=hDef,
-            step=float(ss),
-            key="fine_drwHt"
-        )
-        
-        drwHm = st.slider(
-            f"Middle Drawer Height [{lblQt}]",
-            min_value=hMin,
-            max_value=hMax,
-            value=hDef,
-            step=float(ss),
-            key="fine_drwHm"
-        )
-        
-        drwHb = st.slider(
-            f"Bottom Drawer Height [{lblQt}]",
-            min_value=hMin,
-            max_value=hMax,
-            value=hDef,
-            step=float(ss),
-            key="fine_drwHb"
-        )
-        
-        st.markdown("**Dead Space:**")
-        sDrw = st.number_input(
-            "Drawer Spacing [mm]",
-            min_value=0,
-            max_value=50,
-            value=2,
-            step=1,
-            key="fine_sDrw"
-        )
-        
-        st.info("""
-        **Coarser adjustments:**
-        Go to Configuration tab to adjust drawer quantities
-        """)
-        
-        st.markdown("---")
-        
-        # ADJUST WORKING HEIGHT
-        st.subheader("📏 Working Height")
-        
-        st.number_input(
-            "Castor Height [mm]",
-            min_value=50,
-            max_value=200,
-            value=100,
-            step=10,
-            key="fine_castor"
-        )
-        
-        st.number_input(
-            "Tabletop Thickness [mm]",
-            min_value=10,
-            max_value=50,
-            value=20,
-            step=5,
-            key="fine_tabletop"
-        )
-        
-        st.info("""
-        **Coarser adjustments:**
-        Choose different castor models or adjust drawer heights/quantities
-        """)
+        st.subheader("Fine-tuning Adjustments")
+        st.write("If you want rounded frame dimensions, e.g., 1200mm instead of 1184mm, use these adjustments to fine-tune the final frame sizes.")
+
+        adjust_outer_width = st.number_input("Adjust Frame Outer Width (mm)", value=0, min_value=-100, max_value=100, step=1)
+        adjust_outer_depth = st.number_input("Adjust Frame Outer Depth (mm)", value=0, min_value=-100, max_value=100, step=1)
+        adjust_outer_height = st.number_input("Adjust Frame Outer Height (mm)", value=0, min_value=-100, max_value=100, step=1)
+        adjust_inner_width = st.number_input("Adjust Frame Inner Width (mm)", value=0, min_value=-100, max_value=100, step=1)
+        adjust_inner_depth = st.number_input("Adjust Frame Inner Depth (mm)", value=0, min_value=-100, max_value=100, step=1)
+        adjust_inner_height = st.number_input("Adjust Frame Inner Height (mm)", value=0, min_value=-100, max_value=100, step=1)
+        adjust_drawer_spacing = st.number_input("Adjust Drawer Spacing (mm)", value=0, min_value=-50, max_value=50, step=1)
+
+        st.write("**How adjustments affect dimensions:**")
+        st.write("- **Adjust Frame Outer Width:** Modifies drawer width.")
+        st.write("- **Adjust Frame Inner Width:** Modifies drawer width.")
+        st.write("- **Adjust Frame Outer Depth:** Plays with front clearance, rear clearance, or drawer depth.")
+        st.write("- **Adjust Frame Inner Depth:** Plays with front clearance, rear clearance, or drawer depth.")
+        st.write("- **Adjust Frame Outer Height:** Modifies castors height, tabletop thickness, top/middle/bottom drawer height, or drawer spacing.")
+        st.write("- **Adjust Frame Inner Height:** Modifies top/middle/bottom drawer height or drawer spacing.")
 
 
 
@@ -382,17 +272,17 @@ trlW=frmWo
 trlD=frmDo
 
 # Apply fine-tuning adjustments
-# frmWo += adjust_outer_width
-# frmDo += adjust_outer_depth
-# frmHo += adjust_outer_height
-# frmWi += adjust_inner_width
-# frmDi += adjust_inner_depth
-# frmHi += adjust_inner_height
-# sDrwTot += adjust_drawer_spacing
+frmWo += adjust_outer_width
+frmDo += adjust_outer_depth
+frmHo += adjust_outer_height
+frmWi += adjust_inner_width
+frmDi += adjust_inner_depth
+frmHi += adjust_inner_height
+sDrwTot += adjust_drawer_spacing
 # -----------------------------
 # FRAME DISPLAY
 # -----------------------------
-st.subheader("Tool Trolley frame dimensions")
+st.subheader("🛠️ Tool Trolley frame dimensions")
 col1, col2, col3 = st.columns(3)
 with col1:
     st.metric("Frame outer Width", f"{frmWo:.0f} mm")
@@ -428,7 +318,7 @@ with st.expander("Frame Details"):
 # -----------------------------
 # CUTLIST (MERGED)
 # -----------------------------
-st.subheader("Cutlist of Wood and Profiles")
+st.subheader("📋 Cutlist of Wood and Profiles")
 
 # After result = calculate_drawer(...)
 drawer_parts = generate_drawer_cutlist(result, nDrwT, nDrwM, nDrwB)
@@ -450,7 +340,7 @@ st.dataframe(df_merged)
 
 # PRICE SUMMARY  # Extract to function for separation of concerns
 # -----------------------------
-st.subheader("Cost Summary")
+st.subheader("💰 Cost Summary")
 
 # Drawer costs (total wood area × price/m²)
 drawers_area_panels = (result["low"]["A_panels_m2"] * nDrwT + 
@@ -479,13 +369,13 @@ cost_hardware = cost_slides + cost_brackets  # + castors + tabletop + fasteners 
 
 col1, col2, col3, col4 = st.columns(4)
 with col1:
-    st.metric("Drawers Panels", f"CHF {cost_drawers_panels:.1f}")
+    st.metric("🪵 Drawers Panels", f"CHF {cost_drawers_panels:.1f}")
 with col2:
-    st.metric("Drawers Bases", f"CHF {cost_drawers_bases:.1f}")
+    st.metric("🪵 Drawers Bases", f"CHF {cost_drawers_bases:.1f}")
 with col3:
-    st.metric("Slides+Brackets", f"CHF {cost_hardware:.1f}")
+    st.metric("🔩 Slides+Brackets", f"CHF {cost_hardware:.1f}")
 with col4:
-    st.metric("Frame", "TBD")  # TODO: profile cutlist
+    st.metric("🏗️ Frame", "TBD")  # TODO: profile cutlist
 
 # GRAND TOTAL
 total_cost: float = cost_drawers_total + cost_hardware  # + cost_frame later  # Type hint
@@ -496,4 +386,211 @@ with st.expander("Cost Breakdown"):
     st.info(f"**Drawers total area:** Panels {drawers_area_panels:.3f}m² × {cBox}CHF = {cost_drawers_panels:.1f}CHF")
     st.info(f"**Bases total area:** {drawers_area_bases:.3f}m² × {cBase}CHF = {cost_drawers_bases:.1f}CHF") 
     st.info(f"**Hardware:** {nDrw} slides ({slides_cost:.1f}CHF) + {nDrw*4} brackets ({cost_brackets:.1f}CHF)")
+
+config.py
+
+"""Drawer Calculator Defaults + Sliders"""
+from typing import Dict, Tuple, Any
+
+# Fixed Defaults
+DEFAULTS = {
+    # Dimensions
+    "Wi": 20*42, "Di": 462,
+    
+    # Heights
+    "hl": 80, "hm": 150, "hh": 250,
+    
+    # Quantities
+    "nl": 7, "nm": 4, "nh": 2,
+    
+    # Prices & Hardware
+    "Cp": 30.0, "Cb": 10.0,
+    "slide_price": 15.0,
+    "slide_thick": 25.0, 
+    "frame_clear": 50.0,
+    "td": 6.0, "t": 15.0,
+}
+
+# Slider Tuples: (min, max, default, step)  # Use TypedDict for better typing
+SLIDERS: Dict[str, Tuple[float, float, float, float]] = {
+    # Dimensions
+    "Wi": (50, 2000, DEFAULTS["Wi"], 10),
+    "Di": (50, 2000, DEFAULTS["Di"], 10),
+    
+    # Heights
+    "hl": (40, 300, DEFAULTS["hl"], 10),
+    "hm": (40, 300, DEFAULTS["hm"], 10),
+    "hh": (40, 300, DEFAULTS["hh"], 10),
+    
+    # Quantities (int step=1)
+    "nl": (0, 10, DEFAULTS["nl"], 1),
+    "nm": (0, 10, DEFAULTS["nm"], 1),
+    "nh": (0, 10, DEFAULTS["nh"], 1),
+    
+    # Slides
+    "slide_price": (5.0, 25.0, DEFAULTS["slide_price"], 0.5),
+    "slide_thick": (10.0, 30.0, DEFAULTS["slide_thick"], 0.1),
+}
+  # Consider using a dataclass for DEFAULTS to avoid dict access errors
+# Number Input Ranges (min, max, step)
+NUMBER_RANGES = {
+    "Cp": (5.0, 100.0, 1.0),
+    "Cb": (2.0, 50.0, 1.0),
+    "frame_clear": (30.0, 100.0, 5.0),
+    "td": (3.0, 15.0, 0.1),
+    "t": (5.0, 30.0, 0.1),
+}
+
+# Gridfinity (1U = 42mm width/depth, 7mm height → 0.5U=21mm, 1U=42mm)
+GRIDFINITY = {
+    "unit": 42,      # Width/depth step
+    "half_unit": 21, # Height 0.5U
+    "unit_height": 42,  # Height 1U (6x7mm)
+    "clearance": 0.5,   # Optional bin clearance
+}
+
+
+cutlist_calculator.py
+
+
+from typing import Dict, List, Any
+
+def calculate_toolbox_frame(drawers: Dict[str, Any], tSlides: float, sRear: float, sFront: float, nDrwT: int, nDrwM: int, nDrwB: int, nDrw: int, sDrw: float, tBkt: float) -> Dict[str, float]:
+    """
+    Calculate toolbox frame dimensions around drawer stack.
+    
+    Args:
+        drawers: result dict from calculate_drawer()
+        tSlides: Drawer slide thickness (mm)
+        sRear: Rear clearance behind drawers (mm) 
+        sFront: 
+        nDrwT: Number of top drawers
+        nDrwM: Number of mid drawers
+        nDrwB: Number of bottom drawers
+        nDrw: Total drawers
+        sDrw: Spacing between drawers (mm)
+        tBkt: Thickness drawer bracket
+    
+    Returns:
+        dict with frame dimensions and spacing info
+    """
+
+    dims = drawers['dimensions']
+    
+    # Dynamic total height from quantities
+    h_total = (drawers['low']['height'] * nDrwT + 
+               drawers['mid']['height'] * nDrwM + 
+               drawers['high']['height'] * nDrwB)
+    
+    sDrwTot = (nDrw + 1) * sDrw
+
+   #Dimensions for: Length * Width * Height 
+    #Drawers:       Width  * Depth * Height
+    #Frame:         Width  * Depth * Height
+
+
+    frmHi = h_total + sDrwTot
+    frmWi = dims['Wo'] + 2 * (tSlides+tBkt)
+    frmDo = dims['Do'] + sRear+sFront
+    
+    if sDrwTot == 0: raise ValueError("Spacing cannot be zero")  # Validation
+    return {
+        'frmHi': frmHi,
+        'frmWi': frmWi,
+        'frmDo': frmDo,
+        'sDrwTot': sDrwTot,
+
+    }
+
+def calculate_drawer(drwL: float, drwW: float, drwHt: float, drwHm: float, drwHb: float, tBox: float, sDado: float, cBox: float, cBase: float) -> Dict[str, Any]:
+    """
+    Calculate cost and cutlist for drawer boxes.
+    
+    Args:
+        drwL: drawer Length (Inner width)
+        drwW: drawer Width (Inner depth)
+        drwHt, drwHm, drwHb: Top, Mid, Bottom drawer heights
+        tBox: Material thickness sides
+        sDado: Dado thickness (mm, default 6)
+        cBox: CHF per m² sides
+        cBase: CHF per m² base
+    
+    Returns:
+        dict with calculations for each height
+    """
+    Wi = drwL
+    Di = drwW
+    Wo = Wi + 2 * tBox
+    Do = Di + 2 * tBox
+    Wb = Wi + 2 * sDado
+    Db = Di + 2 * sDado
+    
+    def cost_for_height(h):
+        A_front = 2 * (Wi * h) * 1e-6
+        A_sides = 2 * (Do * h) * 1e-6
+        A_panels = A_front + A_sides
+        A_base = (Wb * Db) * 1e-6 if Wb > 0 and Db > 0 else 0  # Avoid negatives
+        
+        y_panels = cBox * A_panels
+        y_base = cBase * A_base
+        y_total = y_panels + y_base
+        
+        return {
+            'height': h,
+            'A_front_m2': A_front,
+            'A_sides_m2': A_sides,
+            'A_panels_m2': A_panels,
+            'A_base_m2': A_base,
+            'cost_panels': y_panels,
+            'cost_base': y_base,
+            'cost_total': y_total
+        }
+    
+    return {
+        'low': cost_for_height(drwHt),
+        'mid': cost_for_height(drwHm),
+        'high': cost_for_height(drwHb),
+        'dimensions': {
+            'drwL': drwL, 'drwW': drwW,
+            'Wo': Wo, 'Do': Do,
+            'Wb': Wb, 'Db': Db  # Ensure positive values
+        }
+    }
+
+def generate_drawer_cutlist(result, nDrwT, nDrwM, nDrwB):
+    """Generate complete drawer cutlist from result dict."""
+    all_parts = []
+    dims = result['dimensions']
+    
+    for drawer_type, height_key, qty in [
+        ("Top", "low", nDrwT),
+        ("Mid", "mid", nDrwM), 
+        ("Bottom", "high", nDrwB)
+    ]:
+        h = result[height_key]['height']
+        
+        # Generate parts for this height
+        parts = generate_cutlist(
+            drwL=dims['drwL'], drwW=dims['drwW'], 
+            h=h, Wo=dims['Wo'], Do=dims['Do'], 
+            Wb=dims['Wb'], Db=dims['Db'], qty=qty
+        )
+        
+        # Add drawer type
+        for part in parts:
+            part['Drawer'] = drawer_type
+            
+        all_parts.extend(parts)
+    
+    return all_parts
+
+# Your existing single-drawer function (unchanged)
+def generate_cutlist(drwL, drwW, h, Wo, Do, Wb, Db, qty=1):
+    """Generate cutlist table for one drawer height."""
+    return [  # Updated keys to match table
+        {'Part': 'Fronts', 'Qty': 2*qty, 'L (mm)': drwL, 'W (mm)': h},
+        {'Part': 'Sides', 'Qty': 2*qty, 'L (mm)': Do, 'W (mm)': h},
+        {'Part': 'Base', 'Qty': qty, 'L (mm)': Wb, 'W (mm)': Db}
+    ]
+
 

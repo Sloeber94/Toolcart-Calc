@@ -1,0 +1,982 @@
+General rules:
+
+Length * Width * Height abbreviated L W H
+Drawers are measured in Width * Depth. (Length * Width)
+Trolley measured in Width * Depth * Height. (Length * Width * Height)
+
+dimension abbreviations: (always in mm)
+
+l = Length
+w = Width
+h = Height
+t  = thickness e.g. tPlywood = thickness Plywood or tSides
+s = spacing  e.g. sRear = rear Spacing
+i = Inner
+o = Outer
+
+parts abbreviations:
+
+drw = Drawer(s)
+frm = Frame
+gf = Gridfinity (a unit system with multiples of 42mm for l*w and 7mm for h. 6 heigh units = 1 gf unit (6*7). My project does not use 6 units, only 0.5 gf units i.e. h=0.5u=21mm, h=1u=42mm etc.)
+4040 = aluminium extrusion profile with 40x40mm sides
+4080 = aluminium extrusion profile with 40x80mm sides
+2020 = ... you get it.
+
+Examples:
+Drawer dimensions:
+drwWi = drawer Inner Width (length in XYZ space)
+drwWo = drawer Outer  Width, calculated by drwWi + 2*tSides (the thickness of the plywood sides)
+drwDi = drawer inner Depth
+drwDo = drawer Outer Depth (width in XYZ space) calculated by drwDi + 2*tSides
+
+Frame dimensions:
+frmHi = frame inner Height meaning the length of the uprights . 
+
+
+Fine-tuning:
+In order to have rounded dimensions for either drawers, frame or whatever you can fine-tune any part of a formula how you see fit. 
+The goal of this design is to use as much volume of the outer dimensions as possible for storage, i.e. adding spacing for rounded dimensions means lower efficiency (but sometimes necessary for standardization purposes i.e. your workshop uses a kitchen-style width unit and you want to build modules in multiples of 600mm. Therefore the outer frame of 1154mm is rounded up to 1200mm and potential wasted sapce is an acceptable tradeoff)
+Indentation means dependency, which also automatically means that the sum of all dependencies is that property:
+
+
+Frame outer width:
+    Size of extrusion profiles (not adjustable, pre-selected)
+    Frame inner width:
+        Slide brackets (constant thickness of 2mm) - not adjustable (unless you use another installation system)
+        Drawer Slide thickness (depends on model) - not adjustable
+        Drawer outer width:
+            Drawer inner width
+            Plywood thickness
+
+Frame outer Depth:
+    Size of extrusion profiles (not adjustable, pre-selected)
+    Frame inner Depth:
+        Rear spacing (default: design dependconstraint, optional to increase)
+        Front spacing  (default: design constraint, optional to increase)
+        Drawer outer depth:
+            Drawer inner depth
+            Plywood thickness
+
+Tool trolley total height (tabletop working height):
+    Castor Wheels
+    Tabletop / work surface
+    Frame outer height:
+        Size of extrusion profiles (not adjustable, pre-selected)
+        Frame Inner Height:
+            Top/Middle/Bottom drawer quantity e.g. 7 top, 3 middle, and 1 bottom drawer
+            Top/Middle/Bottom drawer height e.g. 50 mm, 100 mm, 150 mm
+            Drawer spacing e.g. 2 mm
+            Result: (7*50)+(3*100)+(1*150)+(7+3+1+1)*2 = 824 mm.
+
+
+
+
+# Tool Trolley Calculator - Complete Documentation
+## Project Overview
+
+This is a Streamlit web application for calculating materials and dimensions for a custom tool trolley/drawer system.
+It supports two modes:
+- **Standard Mode**: Dimensions in millimeters (mm)
+- **Gridfinity Mode**: Dimensions in Gridfinity units (u), a standardized modular storage system
+
+The application consists of 3 main files:
+1. **app.py** - Main Streamlit interface and user interactions
+2. **cutlist_calculator.py** - Core calculation functions for drawer dimensions and materials
+3. **config.py** - Configuration constants and default values
+
+## ARCHITECTURE & DATA FLOW
+
+User Input (Streamlit UI)
+    Constants, Variables, Finetuning
+
+Configuration Variables (config.py)
+Dimension Calculations (cutlist_calculator.py)
+Material Cutlist Generation
+Cost Calculations
+
+Display Results (Streamlit)
+    Review and fine-tune dimensions.
+
+
+## FILE 1: app.py (Main Application)
+
+### Purpose
+Main Streamlit web interface that handles user input and displays results.
+
+### Key Functions
+
+#### load_css()
+Loads custom CSS styling from styles.css file.
+
+**Dependencies:** None
+**Returns:** None (applies CSS to Streamlit app)
+
+---
+
+## GLOBAL CONFIGURATION VARIABLES
+
+These variables control the entire application behavior and are set based on the selected mode.
+
+### Mode Selection
+
+
+| Variable | Gridfinity Mode | Standard Mode | Description |
+|----------|----------------|---------------|-------------|
+| `gf_mode` | True | False | Toggle between Gridfinity and Standard mode |
+| `ss` | 0.5 | 1.0 | Small step size (0.5 GF units or 1 mm) |
+| `ms` | 1 | 5 | Medium step size (1 GF unit or 5 mm) |
+| `gf` | 42 | 42 | Gridfinity base unit size in mm |
+| `drwStep` | `ms` | 50 | Drawer slide stroke increment |
+| `drwMax` | 40 | 2000 | Maximum drawer width |
+| `drwWmax` | 40 | 1000 | Maximum drawer depth |
+| `lblQt` | "u" | "mm" | Label for units (u or mm) |
+| `gfStep` | 42 | 1 | Conversion step (GF units to mm) |
+
+### Drawer Dimension Limits
+
+| Variable | Value (GF) | Value (Std) | Description |
+|----------|-----------|-------------|-------------|
+| `drwMin` | 0 | 0 | Minimum drawer width |
+| `drwMax` | 40 u | 2000 mm | Maximum drawer width |
+| `drwWmax` | 40 u | 1000 mm | Maximum drawer depth |
+| `drwDef` | 20 u | 1000 mm | Default drawer width (drwMax/2) |
+| `nMin` | 0 | 0 | Minimum number of drawers |
+| `nMax` | 20 | 20 | Maximum number of drawers |
+| `hMin` | 0 u | 0 mm | Minimum drawer height |
+| `hMax` | 12 u | 500 mm | Maximum drawer height |
+| `hDef` | 1 u | 50 mm | Default drawer height |
+
+### Material Thickness Constants
+
+These remain constant regardless of mode:
+
+| Variable | Value (mm) | Description |
+|----------|-----------|-------------|
+| `tBox` | 15 | Thickness of drawer box material (sides/front/back) |
+| `tBase` | 5 | Thickness of drawer base material (bottom) |
+| `tBkt` | 2 | Thickness of drawer bracket/slider mount |
+| `sRear` | 40 | Distance from rear drawer slide to outer frame |
+| `sRear40` | 20 | Rear spacing for 400mm slides |
+| `sRear80` | 35 | Rear spacing for 800mm slides |
+| `sDrw` | 2 | Vertical spacing between drawers |
+| `sDadoMax` | 7 | Maximum dado depth (tBox/2) |
+| `sFront` | 5 | Distance from front drawer slide to frame |
+
+### Cost Parameters
+
+| Variable | Value | Description |
+|----------|-------|-------------|
+| `cBox` | 0.02 | Cost per mmÂ² for box material |
+| `cBase` | 0.01 | Cost per mmÂ² for base material |
+
+
+---
+
+## USER INPUT VARIABLES (Collected via Streamlit Sliders)
+
+### Primary Dimensions
+
+**Drawer Width (`drwL`)**
+- Range: 0 to drwMax (0-40u GF or 0-2000mm Std)
+- Step: drwStep (ms GF or 50mm Std)
+- Converted to mm: `drwL_mm = drwL * gfStep`
+
+**Drawer Depth (`drwW`)**
+- Range: 0 to drwWmax (0-40u GF or 0-1000mm Std)
+- Step: drwStep
+- Converted to mm: `drwW_mm = drwW * gfStep`
+
+### Drawer Heights (3 types)
+
+**Top Drawer Height (`drwHt`)**
+- Range: hMin to hMax (0-12u GF or 0-500mm Std)
+- Step: ss (0.5u GF or 1mm Std)
+- Converted to mm: `drwHt_mm = drwHt * gfStep`
+
+**Middle Drawer Height (`drwHm`)**
+- Same range and step as drwHt
+- Converted to mm: `drwHm_mm = drwHm * gfStep`
+
+**Bottom Drawer Height (`drwHb`)**
+- Same range and step as drwHt
+- Converted to mm: `drwHb_mm = drwHb * gfStep`
+
+### Drawer Quantities
+
+**Number of Top Drawers (`nDrwT`)**
+- Range: 0 to nMax (0-20)
+- Step: 1
+
+**Number of Middle Drawers (`nDrwM`)**
+- Range: 0 to nMax (0-20)
+- Step: 1
+
+**Number of Bottom Drawers (`nDrwB`)**
+- Range: 0 to nMax (0-20)
+- Step: 1
+
+**TOTAL DRAWERS CALCULATION:**
+```python
+nDrw = nDrwT + nDrwM + nDrwB
+```
+
+---
+
+## DRAWER SLIDE SELECTION
+
+### Slide Selection Logic
+
+Based on drawer depth (`drwW_mm`), the appropriate slide length is selected:
+
+```python
+if drwW_mm <= 250:
+    slide_length = 250
+    load_class = 25
+elif drwW_mm <= 300:
+    slide_length = 300
+    load_class = 45
+elif drwW_mm <= 350:
+    slide_length = 350
+    load_class = 45
+elif drwW_mm <= 400:
+    slide_length = 400
+    load_class = 45
+elif drwW_mm <= 450:
+    slide_length = 450
+    load_class = 45
+elif drwW_mm <= 500:
+    slide_length = 500
+    load_class = 45
+elif drwW_mm <= 550:
+    slide_length = 550
+    load_class = 45
+elif drwW_mm <= 600:
+    slide_length = 600
+    load_class = 68
+elif drwW_mm <= 700:
+    slide_length = 700
+    load_class = 68
+elif drwW_mm <= 800:
+    slide_length = 800
+    load_class = 68
+```
+
+### Slide Data Retrieved
+
+For each selected slide, the following data is retrieved:
+
+| Property | Description |
+|----------|-------------|
+| `tSlides` | Total thickness of slide assembly |
+| `lSlides` | Nominal length of slide |
+| `wMin` | Minimum mounting width required |
+| `cSlides` | Cost per slide pair |
+| `LClass` | Load class rating |
+
+### Rear Spacing Calculation
+
+Based on slide length:
+
+```python
+if slide_length <= 400:
+    sRear = sRear40  # 20mm
+elif slide_length <= 800:
+    sRear = sRear80  # 35mm
+else:
+    sRear = 40  # default
+```
+
+---
+
+## INTERMEDIATE CALCULATIONS
+
+### Dado Depth (`sDado`)
+
+The dado is the groove cut into the drawer sides to hold the bottom panel.
+
+```python
+sDado = min(sDadoMax, tBox // 2)
+```
+
+- Limited to maximum of `sDadoMax` (7mm)
+- Or half the box material thickness (`tBox // 2`)
+- Ensures structural integrity while allowing bottom panel insertion
+
+**Dependencies:** `sDadoMax`, `tBox`
+
+---
+
+## FILE 2: cutlist_calculator.py (Core Calculations)
+
+### Function: calculate_toolbox_frame()
+
+Calculates the outer frame dimensions that hold all drawers.
+
+**Inputs:**
+- `drawers`: Dictionary of drawer results from calculate_drawer()
+- `tSlides`: Total thickness of slide assembly
+- `sRear`: Rear spacing from slide to frame
+- `sFront`: Front spacing from slide to frame
+- `nDrwT`, `nDrwM`, `nDrwB`: Number of each drawer type
+- `nDrw`: Total number of drawers
+- `sDrw`: Spacing between drawers
+- `tBkt`: Bracket thickness
+
+**Calculations:**
+
+#### Frame Width (`fWidth`)
+```python
+fWidth = drwL + (2 * tSlides) + sRear + sFront
+```
+
+**Dependency Chain:**
+```
+drwL (user input)
+  â””â”€> fWidth
+tSlides (from slide selection)
+  â””â”€> fWidth
+sRear (slide-dependent)
+  â””â”€> fWidth
+sFront (constant)
+  â””â”€> fWidth
+```
+
+**Logic:**
+- Start with drawer length
+- Add slide thickness on both sides (2 * tSlides)
+- Add rear spacing (sRear)
+- Add front spacing (sFront)
+
+#### Frame Depth (`fDepth`)
+```python
+fDepth = drwW + (2 * tSlides) + sRear + sFront
+```
+
+**Same logic as fWidth, but uses drawer depth (drwW)**
+
+#### Frame Height (`fHeight`)
+```python
+fHeight = (
+    (nDrwT * (drwHt + tBkt)) +
+    (nDrwM * (drwHm + tBkt)) +
+    (nDrwB * (drwHb + tBkt)) +
+    ((nDrw - 1) * sDrw)
+)
+```
+
+**Dependency Chain:**
+```
+nDrwT (user input) â”€â”
+drwHt (user input) â”€â”¤
+tBkt (constant) â”€â”€â”€â”€â”¤
+                     â”œâ”€> Component 1: Top drawers height
+nDrwM (user input) â”€â”¤
+drwHm (user input) â”€â”¤
+                     â”œâ”€> Component 2: Middle drawers height
+nDrwB (user input) â”€â”¤
+drwHb (user input) â”€â”¤
+                     â”œâ”€> Component 3: Bottom drawers height
+nDrw (calculated) â”€â”€â”¤
+sDrw (constant) â”€â”€â”€â”€â”˜
+                     â””â”€> Component 4: Spacing between drawers
+```
+
+**Logic:**
+1. Calculate total height of all top drawers: `nDrwT * (drwHt + tBkt)`
+2. Calculate total height of all middle drawers: `nDrwM * (drwHm + tBkt)`
+3. Calculate total height of all bottom drawers: `nDrwB * (drwHb + tBkt)`
+4. Calculate spacing between drawers: `(nDrw - 1) * sDrw`
+   - Note: n drawers need n-1 spaces between them
+5. Sum all components
+
+**Returns:**
+```python
+{
+    'fWidth': fWidth,
+    'fDepth': fDepth,
+    'fHeight': fHeight
+}
+```
+
+---
+
+### Function: calculate_drawer()
+
+Calculates dimensions and materials for a single drawer.
+
+**Inputs:**
+- `drwL`: Drawer length (width) in mm
+- `drwW`: Drawer depth in mm
+- `drwHt`, `drwHm`, `drwHb`: Heights for different drawer types
+- `tBox`: Box material thickness
+- `sDado`: Dado depth
+- `cBox`: Cost per mmÂ² for box material
+- `cBase`: Cost per mmÂ² for base material
+
+**Calculations:**
+
+#### Outer Box Dimensions
+
+**Width Outer (`Wo`)**
+```python
+Wo = drwL
+```
+Simply the drawer length
+
+**Depth Outer (`Do`)**
+```python
+Do = drwW
+```
+Simply the drawer depth
+
+#### Base/Bottom Panel Dimensions
+
+The base sits in dado grooves and must account for:
+1. Dado depth on both sides
+2. Box material thickness at front
+
+**Width Base (`Wb`)**
+```python
+Wb = Wo - (2 * tBox) + (2 * sDado)
+```
+
+**Dependency Chain:**
+```
+Wo (= drwL) â”€â”€â”€â”€â”
+tBox (constant) â”€â”¤
+sDado (calculated) â”€â”˜
+     â””â”€> Wb
+```
+
+**Logic:**
+- Start with outer width (Wo)
+- Subtract box thickness on both sides: `- (2 * tBox)`
+- Add back dado depth on both sides: `+ (2 * sDado)`
+- The base panel must fit into the dado grooves
+
+**Example:**
+If Wo = 500mm, tBox = 15mm, sDado = 7mm:
+```
+Wb = 500 - (2 * 15) + (2 * 7)
+Wb = 500 - 30 + 14
+Wb = 484mm
+```
+
+**Depth Base (`Db`)**
+```python
+Db = Do - tBox - sDado
+```
+
+**Dependency Chain:**
+```
+Do (= drwW) â”€â”€â”€â”€â”
+tBox (constant) â”€â”¤
+sDado (calculated) â”€â”˜
+     â””â”€> Db
+```
+
+**Logic:**
+- Start with outer depth (Do)
+- Subtract front thickness: `- tBox`
+- Subtract dado depth at back: `- sDado`
+- Base panel goes from back dado to front inner face
+
+**Example:**
+If Do = 400mm, tBox = 15mm, sDado = 7mm:
+```
+Db = 400 - 15 - 7
+Db = 378mm
+```
+
+#### Material Area Calculations
+
+**Box Material Area (`area_box`)** - for sides, front, back
+```python
+area_box = 2 * (Wo * height + Do * height)
+```
+
+**Logic:**
+- Two sides: Each is `Wo * height`
+- Front and back: Each is `Do * height`
+- Total: `2 * (Wo * height) + 2 * (Do * height)` = `2 * (Wo * height + Do * height)`
+
+**Base Material Area (`area_base`)** - for bottom panel
+```python
+area_base = Wb * Db
+```
+
+**Logic:**
+- Simply width Ã— depth of the base panel
+
+#### Cost Calculations
+
+**Box Material Cost**
+```python
+cost_box = area_box * cBox
+```
+
+**Base Material Cost**
+```python
+cost_base = area_base * cBase
+```
+
+**Total Cost per Drawer**
+```python
+total_cost = cost_box + cost_base
+```
+
+**Returns:**
+```python
+{
+    'Wo': Wo,        # Outer width
+    'Do': Do,        # Outer depth
+    'Wb': Wb,        # Base width
+    'Db': Db,        # Base depth
+    'area_box': area_box,
+    'area_base': area_base,
+    'cost': total_cost
+}
+```
+
+---
+
+### Function: generate_drawer_cutlist()
+
+Generates a complete material cut list for all drawers.
+
+**Inputs:**
+- `result`: Dictionary from calculate_drawer()
+- `nDrwT`, `nDrwM`, `nDrwB`: Quantities of each drawer type
+
+**Outputs:**
+Pandas DataFrame with columns:
+- Part description
+- Dimensions (Length Ã— Width)
+- Quantity needed
+- Total area
+
+**Cutlist Parts:**
+
+For EACH drawer:
+
+| Part | Dimensions | Qty per Drawer | Description |
+|------|------------|----------------|-------------|
+| Front | `Wo Ã— height` | 1 | Front panel |
+| Back | `Wo Ã— height` | 1 | Back panel |
+| Sides | `Do Ã— height` | 2 | Left & right sides |
+| Base | `Wb Ã— Db` | 1 | Bottom panel |
+
+**Total Calculation Example:**
+
+If you have:
+- 2 top drawers (100mm height)
+- 3 middle drawers (150mm height)
+- 1 bottom drawer (200mm height)
+
+For top drawers (Wo=500, Do=400, Wb=484, Db=378, h=100):
+```
+Fronts:  500Ã—100 Ã— 2 = 100,000 mmÂ² box material
+Backs:   500Ã—100 Ã— 2 = 100,000 mmÂ² box material
+Sides:   400Ã—100 Ã— 4 = 160,000 mmÂ² box material (2 per drawer Ã— 2 drawers)
+Bases:   484Ã—378 Ã— 2 = 365,904 mmÂ² base material
+```
+
+---
+
+### Function: cost_for_height()
+
+Calculates cost for a specific drawer height.
+
+**Input:** `h` - height in mm
+
+**Calculation:**
+```python
+drawer_result = calculate_drawer(drwL, drwW, h, h, h, tBox, sDado, cBox, cBase)
+cost = drawer_result['cost']
+```
+
+**Returns:** Total cost for one drawer of given height
+
+---
+
+## COMPLETE CALCULATION FLOW
+
+### Step 1: User Input Collection
+```
+User enters:
+â†’ drwL (length)
+â†’ drwW (depth)  
+â†’ drwHt, drwHm, drwHb (heights)
+â†’ nDrwT, nDrwM, nDrwB (quantities)
+```
+
+### Step 2: Unit Conversion (if Gridfinity Mode)
+```
+drwL_mm = drwL * gfStep
+drwW_mm = drwW * gfStep
+drwHt_mm = drwHt * gfStep
+drwHm_mm = drwHm * gfStep
+drwHb_mm = drwHb * gfStep
+```
+
+### Step 3: Slide Selection
+```
+Based on drwW_mm:
+â†’ Select appropriate slide_length
+â†’ Retrieve tSlides, cSlides, load_class
+â†’ Determine sRear based on slide_length
+```
+
+### Step 4: Dado Calculation
+```
+sDado = min(sDadoMax, tBox // 2)
+```
+
+### Step 5: Individual Drawer Calculations
+
+For each drawer type (top, middle, bottom):
+
+**5a. Outer Dimensions**
+```
+Wo = drwL_mm
+Do = drwW_mm
+```
+
+**5b. Base Dimensions**
+```
+Wb = Wo - (2 * tBox) + (2 * sDado)
+Db = Do - tBox - sDado
+```
+
+**5c. Areas**
+```
+area_box = 2 * (Wo * height + Do * height)
+area_base = Wb * Db
+```
+
+**5d. Costs**
+```
+cost_box = area_box * cBox
+cost_base = area_base * cBase
+total_cost = cost_box + cost_base
+```
+
+### Step 6: Frame Calculations
+```
+fWidth = drwL_mm + (2 * tSlides) + sRear + sFront
+fDepth = drwW_mm + (2 * tSlides) + sRear + sFront
+fHeight = (nDrwT Ã— (drwHt_mm + tBkt)) + 
+          (nDrwM Ã— (drwHm_mm + tBkt)) + 
+          (nDrwB Ã— (drwHb_mm + tBkt)) + 
+          ((nDrw - 1) Ã— sDrw)
+```
+
+### Step 7: Total Quantities & Costs
+
+**Total Drawers**
+```
+nDrw = nDrwT + nDrwM + nDrwB
+```
+
+**Total Costs**
+```
+cost_top_total = cost_top_drawer Ã— nDrwT
+cost_mid_total = cost_mid_drawer Ã— nDrwM
+cost_bot_total = cost_bot_drawer Ã— nDrwB
+cost_slides = cSlides Ã— nDrw
+
+GRAND_TOTAL = cost_top_total + cost_mid_total + cost_bot_total + cost_slides
+```
+
+---
+
+## VARIABLE DEPENDENCY TREE
+
+```
+USER INPUTS
+â”œâ”€ drwL (drawer length)
+â”‚  â”œâ”€> drwL_mm (Ã— gfStep)
+â”‚  â”‚   â”œâ”€> Wo (outer width)
+â”‚  â”‚   â”‚   â””â”€> Wb (base width) = Wo - 2*tBox + 2*sDado
+â”‚  â”‚   â”œâ”€> fWidth = drwL_mm + 2*tSlides + sRear + sFront
+â”‚  â”‚   â””â”€> area_box (for cost)
+â”‚
+â”œâ”€ drwW (drawer depth)
+â”‚  â”œâ”€> drwW_mm (Ã— gfStep)
+â”‚  â”‚   â”œâ”€> Do (outer depth)
+â”‚  â”‚   â”‚   â””â”€> Db (base depth) = Do - tBox - sDado
+â”‚  â”‚   â”œâ”€> slide_length (selected based on drwW_mm)
+â”‚  â”‚   â”‚   â”œâ”€> tSlides
+â”‚  â”‚   â”‚   â”œâ”€> cSlides
+â”‚  â”‚   â”‚   â””â”€> sRear
+â”‚  â”‚   â”œâ”€> fDepth = drwW_mm + 2*tSlides + sRear + sFront
+â”‚  â”‚   â””â”€> area_box (for cost)
+â”‚
+â”œâ”€ drwHt, drwHm, drwHb (heights)
+â”‚  â”œâ”€> drwHt_mm, drwHm_mm, drwHb_mm (Ã— gfStep)
+â”‚  â”‚   â”œâ”€> area_box = 2 * (Wo*h + Do*h)
+â”‚  â”‚   â”‚   â””â”€> cost_box = area_box * cBox
+â”‚  â”‚   â””â”€> fHeight = sum of all (height + tBkt) + spacing
+â”‚
+â”œâ”€ nDrwT, nDrwM, nDrwB (quantities)
+â”‚  â”œâ”€> nDrw = nDrwT + nDrwM + nDrwB
+â”‚  â”‚   â”œâ”€> fHeight spacing = (nDrw - 1) * sDrw
+â”‚  â”‚   â””â”€> total_slide_cost = cSlides * nDrw
+â”‚  â””â”€> cutlist quantities (multiply parts by qty)
+â”‚
+â””â”€ gf_mode (mode selection)
+   â”œâ”€> ss, ms, gf (step sizes)
+   â”œâ”€> drwMax, drwWmax, hMax (limits)
+   â”œâ”€> lblQt (unit labels)
+   â””â”€> gfStep (conversion factor)
+
+CONSTANTS (from config.py)
+â”œâ”€ tBox (15mm) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚                          â”œâ”€> sDado = min(sDadoMax, tBox/2)
+â”œâ”€ sDadoMax (7mm) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜      â”‚
+â”‚                                 â”œâ”€> Wb = Wo - 2*tBox + 2*sDado
+â”œâ”€ tBase (5mm)                    â””â”€> Db = Do - tBox - sDado
+â”œâ”€ tBkt (2mm) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€> fHeight component
+â”œâ”€ sRear (40/20/35mm) â”€â”€â”€â”€â”€â”€â”€â”€> fWidth, fDepth
+â”œâ”€ sFront (5mm) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€> fWidth, fDepth
+â”œâ”€ sDrw (2mm) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€> fHeight spacing
+â”œâ”€ cBox (0.02) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€> cost_box = area_box * cBox
+â””â”€ cBase (0.01) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€> cost_base = area_base * cBase
+
+CALCULATED VALUES
+â”œâ”€ slide_length â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€> Based on drwW_mm
+â”‚  â”œâ”€> tSlides â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€> frame dimensions
+â”‚  â”œâ”€> cSlides â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€> slide costs
+â”‚  â””â”€> sRear â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€> frame dimensions
+â”‚
+â”œâ”€ sDado â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€> base dimensions (Wb, Db)
+â”‚
+â”œâ”€ Wo, Do â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€> outer dimensions
+â”œâ”€ Wb, Db â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€> base panel dimensions
+â”‚
+â”œâ”€ area_box â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€> material area
+â”œâ”€ area_base â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€> material area
+â”‚
+â”œâ”€ cost_box â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€> material cost
+â”œâ”€ cost_base â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€> material cost
+â”‚
+â”œâ”€ fWidth, fDepth, fHeight â”€â”€â”€> frame dimensions
+â”‚
+â””â”€ GRAND_TOTAL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€> sum of all costs
+```
+
+---
+
+## CRITICAL FORMULAS SUMMARY
+
+### 1. Base Panel Width
+```
+Wb = Wo - (2 Ã— tBox) + (2 Ã— sDado)
+```
+Why: Base fits in dado grooves on both sides
+
+### 2. Base Panel Depth
+```
+Db = Do - tBox - sDado
+```
+Why: Base goes from back dado to front inner surface
+
+### 3. Box Material Area
+```
+area_box = 2 Ã— (Wo Ã— h + Do Ã— h)
+```
+Why: Two widths + two depths, all at height h
+
+### 4. Frame Width/Depth
+```
+fWidth = drwL + (2 Ã— tSlides) + sRear + sFront
+fDepth = drwW + (2 Ã— tSlides) + sRear + sFront
+```
+Why: Drawer + slides on both sides + clearances
+
+### 5. Frame Height
+```
+fHeight = Î£(nDrawers Ã— (height + tBkt)) + ((nDrw - 1) Ã— sDrw)
+```
+Why: Sum of all drawer heights plus brackets plus spacing
+
+### 6. Dado Depth
+```
+sDado = min(sDadoMax, tBox / 2)
+```
+Why: Safe dado depth without weakening box sides
+
+---
+
+## EXAMPLE CALCULATION WALKTHROUGH
+
+### Given Inputs:
+- Mode: Standard (mm)
+- Drawer Length: 500mm
+- Drawer Depth: 400mm
+- Top Height: 100mm, Qty: 2
+- Middle Height: 150mm, Qty: 3
+- Bottom Height: 200mm, Qty: 1
+- Box thickness: 15mm
+- Base thickness: 5mm
+
+### Step-by-Step:
+
+**1. Select Slides (drwW = 400mm)**
+```
+slide_length = 400mm (closest match)
+tSlides = 12.7mm
+sRear = 20mm (for 400mm slides)
+cSlides = 25 EUR per pair
+```
+
+**2. Calculate Dado**
+```
+sDado = min(7, 15/2) = min(7, 7.5) = 7mm
+```
+
+**3. Calculate Top Drawer (h=100mm)**
+```
+Wo = 500mm
+Do = 400mm
+Wb = 500 - (2Ã—15) + (2Ã—7) = 500 - 30 + 14 = 484mm
+Db = 400 - 15 - 7 = 378mm
+area_box = 2 Ã— (500Ã—100 + 400Ã—100) = 2 Ã— 90,000 = 180,000 mmÂ²
+area_base = 484 Ã— 378 = 182,952 mmÂ²
+cost_box = 180,000 Ã— 0.02 = 3.60 EUR
+cost_base = 182,952 Ã— 0.01 = 1.83 EUR
+total_cost_one = 5.43 EUR
+total_cost_all_top = 5.43 Ã— 2 = 10.86 EUR
+```
+
+**4. Calculate Middle Drawer (h=150mm)**
+```
+Wo = 500mm, Do = 400mm, Wb = 484mm, Db = 378mm (same)
+area_box = 2 Ã— (500Ã—150 + 400Ã—150) = 270,000 mmÂ²
+area_base = 182,952 mmÂ² (same)
+cost_box = 270,000 Ã— 0.02 = 5.40 EUR
+cost_base = 1.83 EUR (same)
+total_cost_one = 7.23 EUR
+total_cost_all_mid = 7.23 Ã— 3 = 21.69 EUR
+```
+
+**5. Calculate Bottom Drawer (h=200mm)**
+```
+area_box = 2 Ã— (500Ã—200 + 400Ã—200) = 360,000 mmÂ²
+cost_box = 360,000 Ã— 0.02 = 7.20 EUR
+cost_base = 1.83 EUR
+total_cost_one = 9.03 EUR
+total_cost_all_bot = 9.03 Ã— 1 = 9.03 EUR
+```
+
+**6. Calculate Frame**
+```
+fWidth = 500 + (2Ã—12.7) + 20 + 5 = 550.4mm
+fDepth = 400 + (2Ã—12.7) + 20 + 5 = 450.4mm
+fHeight = (2Ã—(100+2)) + (3Ã—(150+2)) + (1Ã—(200+2)) + ((6-1)Ã—2)
+        = (2Ã—102) + (3Ã—152) + (1Ã—202) + (5Ã—2)
+        = 204 + 456 + 202 + 10
+        = 872mm
+```
+
+**7. Calculate Totals**
+```
+nDrw = 2 + 3 + 1 = 6 drawers
+cost_drawers = 10.86 + 21.69 + 9.03 = 41.58 EUR
+cost_slides = 25 Ã— 6 = 150 EUR
+GRAND_TOTAL = 41.58 + 150 = 191.58 EUR
+```
+
+---
+
+## FILE 3: config.py
+
+Contains all default values and configuration constants organized into dictionaries:
+
+### DEFAULTS Dictionary
+Contains default values for sliders and inputs.
+
+### SLIDERS Dictionary
+Contains range definitions (min, max, step) for each slider.
+
+### NUMBER_RANGES Dictionary
+Contains limits for drawer quantities and dimensions.
+
+---
+
+## TROUBLESHOOTING GUIDE
+
+### Common Issues:
+
+**1. Base dimensions negative or zero**
+- Check: sDado calculation
+- Ensure: tBox is not too large
+- Verify: Wo and Do are sufficient
+
+**2. Frame height too small**
+- Check: All drawer heights are set
+- Verify: tBkt is included
+- Ensure: Spacing (sDrw) is calculated
+
+**3. Costs seem wrong**
+- Check: area_box and area_base calculations
+- Verify: cBox and cBase cost factors
+- Ensure: Units are consistent (mm vs cm)
+
+**4. Gridfinity mode conversion issues**
+- Check: gfStep is correctly set to 42
+- Verify: All inputs are multiplied by gfStep
+- Ensure: Mode toggle updates all dependent variables
+
+---
+
+## MAINTENANCE NOTES
+
+### When Adding New Features:
+
+1. **New drawer size**: Update drwMax, drwWmax, hMax
+2. **New slide lengths**: Add to slide selection logic
+3. **New materials**: Update cBox, cBase cost factors
+4. **New spacing rules**: Update sDrw, sRear, sFront
+
+### Code Quality Checks:
+
+- All dimensions should handle both GF and standard mode
+- All calculations should use mm internally
+- User display should show correct units (lblQt)
+- Cost calculations should remain in same currency
+
+---
+
+## QUICK REFERENCE: KEY EQUATIONS
+
+```python
+# Base Panel Dimensions
+Wb = Wo - (2 * tBox) + (2 * sDado)
+Db = Do - tBox - sDado
+
+# Material Areas
+area_box = 2 * (Wo * h + Do * h)
+area_base = Wb * Db
+
+# Frame Dimensions
+fWidth = drwL + (2 * tSlides) + sRear + sFront
+fDepth = drwW + (2 * tSlides) + sRear + sFront
+fHeight = sum(n * (h + tBkt) for each type) + ((nDrw - 1) * sDrw)
+
+# Costs
+cost_box = area_box * cBox
+cost_base = area_base * cBase
+cost_drawer = cost_box + cost_base
+cost_slides = cSlides * nDrw
+TOTAL = sum(all drawer costs) + cost_slides
+```
+
+---
+
+## END OF DOCUMENTATION
+
+Last Updated: 2026-01-22
+Version: 1.0
+Author: Tool Trolley Calculator Project
