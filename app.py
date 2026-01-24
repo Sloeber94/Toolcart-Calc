@@ -16,7 +16,7 @@ load_css()
 st.set_page_config(page_title="Drawer Calculator", layout="wide")
 
 
-st.title("Tool Trolley Project Calculator")
+st.title('[Verschraubt.ch - Tool Trolley Project Calculator](https://verschraubt.ch)')
 st.markdown(
     "Fully customizable by you, just enter your requirements and let it calculate your materials."
 )
