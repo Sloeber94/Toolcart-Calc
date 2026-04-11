@@ -67,6 +67,7 @@ with st.sidebar:
         with col1:
             drwLu = st.slider("Drawer Width", drwMin, drwMax, drwDef, ms, format=f"%g {lblQt}")
             drwL = drwLu * gfStep
+            
         with col2:
             if gf_mode: 
                 st.caption(f"{int(drwL)} mm", text_alignment="right")
@@ -80,6 +81,8 @@ with st.sidebar:
             if gf_mode:
                 st.caption(f"{int(drwW)} mm", text_alignment="right")
 
+        if drwL >=2*drwW:
+            st.warning("It is recommended  to keep drawer width less than twice the drawer depth, be advised!")  
         st.subheader("Drawer Heights")
         # Top
         col1, col2 = st.columns([4, 1])
@@ -135,11 +138,17 @@ with st.sidebar:
         st.subheader("Prices")
         col1, col2 = st.columns(2)
         with col1:
-            cBox = st.number_input("Plywood CHF/m²", value=25.0, min_value=0.0, max_value=200.0, step=1.0, format="%.0f")
+            cBox = st.number_input("Drawer panels per m²", value=25.0, min_value=0.0, max_value=200.0, step=1.0, format="%.0f")
         with col2:
-            cBase = st.number_input("Base CHF/m² ", value=15.0, min_value=0.0, max_value=200.0, step=1.0, format="%.0f")
-        st.subheader("Drawer Slides")
+            cBase = st.number_input("Drawer base per m²", value=15.0, min_value=0.0, max_value=200.0, step=1.0, format="%.0f")
+        col1, col2 = st.columns(2)
+        with col1:
+            c4040 = st.number_input("4040 profiles per m", value=10.0, min_value=0.0, max_value=200.0, step=1.0, format="%.0f")
+        with col2:
+            c4080 = st.number_input("4080 profiles per m", value=17.0, min_value=0.0, max_value=200.0, step=1.0, format="%.0f")
 
+        
+        st.subheader("Drawer Slides")
         # Slide matrix - background data only
         slide_data = [
             ["Basic", "Light", 5, 12.0],
