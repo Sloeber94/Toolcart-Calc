@@ -3,7 +3,8 @@ import pandas as pd
 import streamlit as st
 from typing import Dict, Any
 from config import DEFAULTS, SLIDERS, NUMBER_RANGES
-from cutlist_calculator import calculate_drawer,generate_cutlist, generate_drawer_cutlist, calculate_toolbox_frame
+from cutlist_calculator import calculate_drawer, generate_cutlist, generate_drawer_cutlist, calculate_toolbox_frame
+
 
 def load_css():
     css_path = "styles.css"
@@ -11,498 +12,453 @@ def load_css():
         with open(css_path, "r", encoding="utf-8") as f:
             st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
+
 load_css()
 
 st.set_page_config(page_title="Drawer Calculator", layout="wide")
-
 
 st.title('[Verschraubt.ch - Tool Trolley Project Calculator](https://verschraubt.ch)')
 st.markdown(
     "Fully customizable by you, just enter your requirements and let it calculate your materials."
 )
+
+INIT_STATE = {
+    "gf_mode": False,
+    "gf": 42,
+    "drwW": 650,
+    "drwD": 450,
+    "drwHt": 50,
+    "drwHm": 100,
+    "drwHb": 175,
+    "nDrwT": 6,
+    "nDrwM": 3,
+    "nDrwB": 2,
+    "hCastors": 100,
+    "tTbl": 18,
+    "tBox": 15,
+    "tBase": 5,
+    "sRear": 40,
+    "sFront": 5,
+    "sDrw": 2,
+    "sDado": 7,
+    "cBox": 25.0,
+    "cBase": 15.0,
+    "c4040": 15.0,
+    "c4080": 20.0,
+}
+
+for k, v in INIT_STATE.items():
+    st.session_state.setdefault(k, v)
+
+def toDisp(val, gf_mode, gf):
+    return val / gf if gf_mode else val
+
+
+def toMm(val, gf_mode, gf):
+    return val * gf if gf_mode else val
+
+
+def lbl(gf_mode):
+    return "u" if gf_mode else "mm"
+
+
+def mmSlider(label, key, minVal, maxVal, defVal, stepVal, showMm=False, gf=True):
+    gf_mode = st.session_state.gf_mode and gf
+    gf_step = st.session_state.gf
+
+    if key not in st.session_state:
+        st.session_state[key] = defVal
+
+    col1, col2 = st.columns([4, 1])
+
+    with col1:
+        new_disp = st.slider(
+            label,
+            min_value=float(toDisp(minVal, gf_mode, gf_step)),
+            max_value=float(toDisp(maxVal, gf_mode, gf_step)),
+            value=float(toDisp(st.session_state[key], gf_mode, gf_step)),
+            step=float(toDisp(stepVal, gf_mode, gf_step)),
+            format=f"%.1f {lbl(gf_mode)}",
+            key=f"{key}_{'gf' if gf_mode else 'mm'}_{'usegf' if gf else 'fixedmm'}",
+        )
+
+    st.session_state[key] = toMm(new_disp, gf_mode, gf_step)
+
+    with col2:
+        if showMm and gf_mode:
+            st.caption(f"{int(st.session_state[key])} mm")
+
+    return st.session_state[key]
+
+
+if "gf_mode" not in st.session_state:
+    st.session_state.gf_mode = False
+
+if "gf" not in st.session_state:
+    st.session_state.gf = 42
+
+
+# defaults, always in mm
+defaults = {
+    "drwW": 650,      # drawer width
+    "drwD": 450,      # drawer depth
+    "drwHt": 50,      # top drawer height
+    "drwHm": 100,     # middle drawer height
+    "drwHb": 175,     # bottom drawer height
+    "nDrwT": 6,       # top drawer quantity
+    "nDrwM": 3,       # middle drawer quantity
+    "nDrwB": 2,       # bottom drawer quantity
+    "hCastors": 100,  # height of castors
+    "tTbl": 18,       # tabletop thickness
+}
+
+for k, v in defaults.items():
+    if k not in st.session_state:
+        st.session_state[k] = v
+
+# Initialize other constants in session state (needed by CALCULATIONS)
+if "tBox" not in st.session_state:
+    st.session_state.tBox = 15
+
+if "tBase" not in st.session_state:
+    st.session_state.tBase = 5
+
+if "sRear" not in st.session_state:
+    st.session_state.sRear = 40
+
+if "sFront" not in st.session_state:
+    st.session_state.sFront = 5
+
+if "sDrw" not in st.session_state:
+    st.session_state.sDrw = 2
+
+
 with st.sidebar:
     st.header("Configuration")
-    gf_mode = st.sidebar.checkbox("Gridfinity Mode")
 
-    #gridfinity units
-    ss = 0.5 if gf_mode else 1.0 #0.5u GF or 1 mm
-    ms = 1 if gf_mode else 5 #1.0u GF or 5 mm
-    gf = 42
+    st.checkbox("Gridfinity Mode", key="gf_mode")
+    gf_mode = st.session_state.gf_mode
+    gf = st.session_state.gf
 
-    #drawer dimensions
-    drwStep = ms if gf_mode else 50 #drawer slide stroke length in 50 mm or gf units with small under/overlap
-    drwMin = 0
-    drwMax = 40 if gf_mode else 2000 #max width
-    drwWmax = 40 if gf_mode else 1000 #max depth
-    drwDef = drwMax//2 #default slider value
-    lblQt = "u" if gf_mode else "mm" #units in u (GF units) or mm
-    gfStep = gf if gf_mode else 1 #conversion to mm step if GF chosen
-    nMin = 0 #amount of drawers minimum value
-    nMax = 20 #amount of drawers maximum value
-
-    hMin = float(0) #min drawer height
-    hMax = float(12 if gf_mode else 500) #max drawer height
-    hDef = float(1 if gf_mode else 50) #default drawer height
-
-    #design defaults
-    tBox=15 #thickness drawer box material
-    tBase=5 #thickness drawer base material
-    tBkt=2 #thickness drawer bracket
-    sRear = 40 #distance rear drawer slide to outer frame
+    # constants (just for clarity; values are stored in st.session_state below)
+    tBox = 15
+    tBase = 5
+    tBkt = 2
+    sRear = 40
     sRear40 = 20
     sRear80 = 35
-    sDrw = 2 #drawer spacing
-    sDadoMax =tBox//2 #dado depth in sides and fronts
-    sFront = 5 #distance front drawer slide to outer frame
-    w4040=40 #alu profile side 
-    w4080=80 #alu profile side
+    sDrw = 2
+    sDadoMax = tBox // 2
+    sFront = 5
+    w4040 = 40
+    w4080 = 80
+
+    # limits, always in mm
+    drwWmin = 0
+    drwWmax = 2000
+    drwWdef = defaults["drwW"]
+    drwWstep = 42 if gf_mode else 5
+
+    drwDmin = 0
+    drwDmax = 1000
+    drwDdef = defaults["drwD"]
+    drwDstep = 42 if gf_mode else 50
+
+    drwHmin = 0
+    drwHmax = 500
+    drwHstep = 21 if gf_mode else 1
+
+    nDrwMin = 0
+    nDrwMax = 20
+
+    tabs = st.tabs(["Input", "Constants"])
 
 
-
-    tabs = st.tabs(["Input", "Constants", "Fine-tuning"])  # Type hint for clarity
-    # TAB 0: INPUTS - Fixed formats
     with tabs[0]:
-        # Width
-        col1, col2 = st.columns([4, 1])
-        with col1:
-            drwLu = st.slider("Drawer Width", drwMin, drwMax, drwDef, ms, format=f"%g {lblQt}")
-            drwL = drwLu * gfStep
-            
-        with col2:
-            if gf_mode: 
-                st.caption(f"{int(drwL)} mm", text_alignment="right")
+        drwW = mmSlider("Drawer Width", "drwW", drwWmin, drwWmax, drwWdef, drwWstep, True)
+        drwD = mmSlider("Drawer Depth", "drwD", drwDmin, drwDmax, drwDdef, drwDstep, True)
 
-        # Depth
-        col1, col2 = st.columns([4, 1])
-        with col1:
-            drwWu = st.slider("Drawer Depth", drwMin, drwWmax, drwDef, drwStep, format=f"%g {lblQt}")
-            drwW = drwWu * gfStep
-        with col2:
-            if gf_mode:
-                st.caption(f"{int(drwW)} mm", text_alignment="right")
+        if drwW >= 2 * drwD:
+            st.warning("It is recommended to keep drawer width less than twice the drawer depth, be advised!")
 
-        if drwL >=2*drwW:
-            st.warning("It is recommended  to keep drawer width less than twice the drawer depth, be advised!")  
         st.subheader("Drawer Heights")
-        # Top
-        col1, col2 = st.columns([4, 1])
-        with col1:
-            drwHtu = st.slider("Top", hMin, hMax, hDef, ss, format=f"%.1f {lblQt}")
-            drwHt = drwHtu * gfStep
-        with col2:
-            if gf_mode:
-                st.caption(f"{int(drwHt)} mm", text_alignment="center")
 
-        # Middle  
-        col1, col2 = st.columns([4, 1])
-        with col1:
-            drwHmu = st.slider("Middle", hMin, hMax, hDef, ss, format=f"%.1f {lblQt}")
-            drwHm = drwHmu * gfStep
-        with col2:
-            if gf_mode:
-                st.caption(f"{int(drwHm)} mm", text_alignment="center")
+        for label, key, defVal in [
+            ("Top", "drwHt", defaults["drwHt"]),
+            ("Middle", "drwHm", defaults["drwHm"]),
+            ("Bottom", "drwHb", defaults["drwHb"]),
+        ]:
+            mmSlider(label, key, drwHmin, drwHmax, defVal, drwHstep, True)
 
-        # Bottom
-        col1, col2 = st.columns([4, 1])
-        with col1:
-            drwHbu = st.slider("Bottom", hMin, hMax, hDef, ss, format=f"%.1f {lblQt}")
-            drwHb = drwHbu * gfStep
-        with col2:
-            if gf_mode:
-                st.caption(f"{int(drwHb)} mm", text_alignment="center")
+        drwHt = st.session_state.drwHt
+        drwHm = st.session_state.drwHm
+        drwHb = st.session_state.drwHb
 
         st.subheader("Drawer Quantities")
-        col1, col2 = st.columns([4, 1])
-        with col1:
-            nDrwT = st.slider("Top", nMin, nMax, 7, 1, format="%d pcs")
-        with col2:
-            pass
-        col1, col2 = st.columns([4, 1])
-        with col1:
-            nDrwM = st.slider("Middle", nMin, nMax, 4, 1, format="%d pcs")
-        with col2:
-            pass
-        col1, col2 = st.columns([4, 1])
-        with col1:
-            nDrwB = st.slider("Bottom", nMin, nMax, 2, 1, format="%d pcs")
-        with col2:
-            pass
 
+        for label, key, defVal in [
+            ("Top", "nDrwT", defaults["nDrwT"]),
+            ("Middle", "nDrwM", defaults["nDrwM"]),
+            ("Bottom", "nDrwB", defaults["nDrwB"]),
+        ]:
+            st.session_state[key] = st.slider(
+                label,
+                min_value=nDrwMin,
+                max_value=nDrwMax,
+                value=st.session_state[key],
+                step=1,
+                format="%d pcs",
+                key=f"{key}_qty"
+            )
+
+        nDrwT = st.session_state.nDrwT
+        nDrwM = st.session_state.nDrwM
+        nDrwB = st.session_state.nDrwB
 
         st.subheader("Accessoires")
-        hCastors=st.slider("Castors Height", 0, 200, 125, 1, format="%.1d mm")
-        tTbl=st.slider("Tabletop thickness", 0, 50, 20, 1, format="%.1d mm")
 
-    # TAB 1: CONSTANTS - Fixed formats
+        hCastors = mmSlider("Castors Height", "hCastors", 0, 200, defaults["hCastors"], 1, False, gf=False)
+        tTbl = mmSlider("Tabletop thickness", "tTbl", 0, 50, defaults["tTbl"], 1, False, gf=False)
+
+
     with tabs[1]:
         st.subheader("Prices")
-        col1, col2 = st.columns(2)
-        with col1:
-            cBox = st.number_input("Drawer panels per m²", value=25.0, min_value=0.0, max_value=200.0, step=1.0, format="%.0f")
-        with col2:
-            cBase = st.number_input("Drawer base per m²", value=15.0, min_value=0.0, max_value=200.0, step=1.0, format="%.0f")
-        col1, col2 = st.columns(2)
-        with col1:
-            c4040 = st.number_input("4040 profiles per m", value=10.0, min_value=0.0, max_value=200.0, step=1.0, format="%.0f")
-        with col2:
-            c4080 = st.number_input("4080 profiles per m", value=17.0, min_value=0.0, max_value=200.0, step=1.0, format="%.0f")
 
-        
-        st.subheader("Drawer Slides")
-        # Slide matrix - background data only
-        slide_data = [
-            ["Basic", "Light", 5, 12.0],
-            ["Basic", "Medium", 8, 15.0],
-            ["Basic", "Heavy", 10, 19.0],
-            ["Bumper", "Light", 8, 15.0],
-            ["Bumper", "Medium", 11, 19.0],
-            ["Bumper", "Heavy", 14, 22.0],
-            ["Soft-Close", "Light", 12, 19.0],
-            ["Soft-Close", "Medium", 16, 22.0],
-            ["Soft-Close", "Heavy", 20, 25.0],
-            ["Push-to-Open", "Light", 15, 22.0],
-            ["Push-to-Open", "Medium", 19, 25.0],
-            ["Push-to-Open", "Heavy", 24, 28.0],
+        priceFields = [
+            ("Drawer panels per m²", "cBox", 25.0),
+            ("Drawer base per m²", "cBase", 15.0),
+            ("4040 profiles per m", "c4040", 15.0),
+            ("4080 profiles per m", "c4080", 20.0),
         ]
 
-        # Lookup function
-        def get_slide_data(feature, load_class):
-            for row in slide_data:
-                if row[0] == feature and row[1] == load_class:
-                    return row[2], row[3]
-            return 10, 19.0  # default
+        for i in range(0, len(priceFields), 2):
+            col1, col2 = st.columns(2)
+            for col, (label, key, defVal) in zip((col1, col2), priceFields[i:i+2]):
+                with col:
+                    if key not in st.session_state:
+                        st.session_state[key] = defVal
+                    st.session_state[key] = st.number_input(
+                        label,
+                        min_value=0.0,
+                        max_value=200.0,
+                        value=st.session_state[key],
+                        step=1.0,
+                        format="%.0f",
+                        key=f"{key}_price"
+                    )
 
-        # SINGLE dropdown set - 2-column row
+        cBox = st.session_state.cBox
+        cBase = st.session_state.cBase
+        c4040 = st.session_state.c4040
+        c4080 = st.session_state.c4080
+
+        st.subheader("Drawer Slides")
+
+        slideData = {
+            ("Basic", "Light"): (5, 12.0),
+            ("Basic", "Medium"): (8, 15.0),
+            ("Basic", "Heavy"): (10, 19.0),
+            ("Bumper", "Light"): (8, 15.0),
+            ("Bumper", "Medium"): (11, 19.0),
+            ("Bumper", "Heavy"): (14, 22.0),
+            ("Soft-Close", "Light"): (12, 19.0),
+            ("Soft-Close", "Medium"): (16, 22.0),
+            ("Soft-Close", "Heavy"): (20, 25.0),
+            ("Push-to-Open", "Light"): (15, 22.0),
+            ("Push-to-Open", "Medium"): (19, 25.0),
+            ("Push-to-Open", "Heavy"): (24, 28.0),
+        }
+
         col1, col2 = st.columns(2)
         with col1:
-            selected_feature = st.selectbox("Features", ["Basic", "Bumper", "Soft-Close", "Push-to-Open"], index=0)
+            selectedFeature = st.selectbox(
+                "Features",
+                ["Basic", "Bumper", "Soft-Close", "Push-to-Open"],
+                index=0
+            )
         with col2:
-            selected_load = st.selectbox("Load Class", ["Light", "Medium", "Heavy"], index=1)
+            selectedLoad = st.selectbox(
+                "Load Class",
+                ["Light", "Medium", "Heavy"],
+                index=1
+            )
 
-            # Extract and display values
-        cSlides, tSlides = get_slide_data(selected_feature, selected_load)
+        cSlides, tSlides = slideData.get((selectedFeature, selectedLoad), (10, 19.0))
         st.caption(f"Price per pair: {cSlides} CHF", text_alignment="center")
         st.caption(f"Slide Thickness: {tSlides:.1f} mm", text_alignment="center")
 
         st.subheader("Dimensions")
-        col1, col2 = st.columns([2,3])
+
+        col1, col2 = st.columns([2, 3])
+
         with col1:
             uprights = st.radio("Uprights profile", ["4040", "4080"], index=0)
-        if uprights == "4040":  # Fixed ==
-            frame_clear = 10
-            tUprights=w4040
-        else:
-            frame_clear = 50
-            tUprights=w4080
+
+        tUprights = w4040 if uprights == "4040" else w4080
+        frameClearDef = 10 if uprights == "4040" else 50
+
         with col2:
-                front_clear_man = st.number_input("Front Clearance", value=sFront, min_value=0, max_value=100, step=1, help="Optional: change distance from drawer slides to front of frame or leave as is")
-                frame_clear_man = st.number_input("Rear Clearance", value=frame_clear, min_value=0, max_value=100, step=1, help="Changes on profile selection, change only when required.")
-        sRear = frame_clear_man
-        sFront = front_clear_man
+            sFront = st.number_input(
+                "Front Clearance",
+                value=st.session_state.sFront,
+                min_value=0,
+                max_value=100,
+                step=1,
+                help="Optional: change distance from drawer slides to front of frame or leave as is"
+            )
+            sRear = st.number_input(
+                "Rear Clearance",
+                value=st.session_state.sRear,
+                min_value=0,
+                max_value=100,
+                step=1,
+                help="Changes on profile selection, change only when required."
+            )
+
+            st.session_state.sRear = sRear
+            st.session_state.sFront = sFront
 
         st.subheader("Wood Dimensions")
-        col1, col2, col3 = st.columns([2,2,2])
+
+        col1, col2, col3 = st.columns(3)
+
         with col1:
-            t_box = st.slider("Plywood thickness", 0, 30, tBox, 1, format="%.0f mm")
+            slab = st.slider(
+                "Plywood thickness",
+                0,
+                30,
+                st.session_state.tBox,
+                1,
+                format="%.0f mm"
+            )
+            st.session_state.tBox = slab
+
         with col2:
-            t_base = st.slider("Base thickness", 0, 30, tBase, 1, format="%.0f mm")
-        tBox: float = t_box
-        tBase: float = t_base
-        sDadoMax = tBox//2
-        sDado_auto = tBox//2
+            slab = st.slider(
+                "Base thickness",
+                0,
+                30,
+                st.session_state.tBase,
+                1,
+                format="%.0f mm"
+            )
+            st.session_state.tBase = slab
+
+        sDadoMax = max(int(st.session_state.tBox // 2), 3)
+        sDadoDef = min(max(int(st.session_state.tBox // 2), 2), sDadoMax)
+
         with col3:
-            # Harden slider bounds so Streamlit never receives min_value >= max_value
-            min_val = 2
-            safe_sDadoMax = max(int(sDadoMax), min_val + 1)
-            max_val = max(safe_sDadoMax, min_val + 1)
-            sDado_default = min(max(int(sDado_auto), min_val), max_val - 1)
             sDado = st.slider(
                 "Dado depth",
-                min_value=min_val,
-                max_value=max_val,
-                value=sDado_default,
+                min_value=2,
+                max_value=sDadoMax,
+                value=sDadoDef,
                 step=1,
                 format="%.0f mm",
                 help="Default to <50% of Plywood thickness",
             )
+            st.session_state.sDado = sDado
 
-    
-        # TAB 3: FINE-TUNING
+    """
+    # TAB 3: FINE-TUNING
     with tabs[2]:
-        st.title("🎯 Fine-tuning")
-        
-        st.info("Adjust dimensions below. Results update on the right →")
-        
-        st.markdown("---")
-        
-        # ADJUST FRAME WIDTH
-        st.subheader("📏 Frame Width")
-        st.caption("Controlled by drawer width or panel thickness")
-        
-        drwL = st.slider(
-            f"Drawer Width [{lblQt}]",
-            min_value=float(drwMin),
-            max_value=float(drwMax),
-            value=float(drwDef),
-            step=float(drwStep),
-            key="fine_drwL"
-        )
-        tBox = st.slider("Plywood thickness", 0, 30, tBox, 1, format="%.0f mm", key="fine_tBox")
-        
-        st.markdown("---")
-        
-        # ADJUST FRAME DEPTH
-        st.subheader("📏 Frame Depth")
-        
-        drwW = st.slider(
-            f"Drawer Depth [{lblQt}]",
-            min_value=float(drwMin),
-            max_value=float(drwWmax),
-            value=float(drwDef),
-            step=float(drwStep),
-            key="fine_drwW"
-        )
-        
-        st.markdown("**Dead Space:**")
-        sRear = st.number_input(
-            "Rear Spacing [mm]",
-            min_value=0,
-            max_value=100,
-            value=40,
-            step=5,
-            key="fine_sRear"
-        )
-        
-        sFront = st.number_input(
-            "Front Spacing [mm]",
-            min_value=0,
-            max_value=100,
-            value=5,
-            step=5,
-            key="fine_sFront"
-        )
-        
-        st.markdown("---")
-        
-        # ADJUST FRAME HEIGHT
-        st.subheader("📏 Frame Height")
-        
-        drwHt = st.slider(
-            f"Top Drawer Height [{lblQt}]",
-            min_value=hMin,
-            max_value=hMax,
-            value=hDef,
-            step=float(ss),
-            key="fine_drwHt"
-        )
-        
-        drwHm = st.slider(
-            f"Middle Drawer Height [{lblQt}]",
-            min_value=hMin,
-            max_value=hMax,
-            value=hDef,
-            step=float(ss),
-            key="fine_drwHm"
-        )
-        
-        drwHb = st.slider(
-            f"Bottom Drawer Height [{lblQt}]",
-            min_value=hMin,
-            max_value=hMax,
-            value=hDef,
-            step=float(ss),
-            key="fine_drwHb"
-        )
-        
-        st.markdown("**Dead Space:**")
-        sDrw = st.number_input(
-            "Drawer Spacing [mm]",
-            min_value=0,
-            max_value=50,
-            value=2,
-            step=1,
-            key="fine_sDrw"
-        )
-        
-        st.info("""
-        **Coarser adjustments:**
-        Go to Configuration tab to adjust drawer quantities
-        """)
-        
-        st.markdown("---")
-        
-        # ADJUST WORKING HEIGHT
-        st.subheader("📏 Working Height")
-        
-        st.number_input(
-            "Castor Height [mm]",
-            min_value=50,
-            max_value=200,
-            value=100,
-            step=10,
-            key="fine_castor"
-        )
-        
-        st.number_input(
-            "Tabletop Thickness [mm]",
-            min_value=10,
-            max_value=50,
-            value=20,
-            step=5,
-            key="fine_tabletop"
-        )
-        
-        st.info("""
-        **Coarser adjustments:**
-        Choose different castor models or adjust drawer heights/quantities
-        """)
-
+        st.title("🎯 Fine‑tuning")
+        ...
+    """
 
 
 # CALCULATIONS
-# -----------------------------
-result = calculate_drawer(drwL,drwW,drwHt,drwHm,drwHb,tBox,sDado,cBox,cBase)
+drwW = st.session_state.drwW
+drwD = st.session_state.drwD
+drwHt = st.session_state.drwHt
+drwHm = st.session_state.drwHm
+drwHb = st.session_state.drwHb
+tBox = st.session_state.tBox
+tBase = st.session_state.tBase
+sDado = st.session_state.sDado
+sDadoMax = tBox // 2
+sRear = st.session_state.sRear
+sFront = st.session_state.sFront
+sDrw = st.session_state.sDrw
 
-nDrw = nDrwT+nDrwM+nDrwB #total drawers
-slides_cost = nDrw * cSlides
+# prices
+cBox = st.session_state.cBox
+cBase = st.session_state.cBase
+c4040 = st.session_state.c4040
+c4080 = st.session_state.c4080
+hCastors = st.session_state.hCastors
+tTbl = st.session_state.tTbl
 
-frame = calculate_toolbox_frame(
-    result,           # calculate_drawer output
-    tSlides,          # slide_thickness  
-    sRear,            # Back Spacing (dist drawer slide to outer frame)
-    sFront,           # Front spacing (dist drawer to outer frame)
-    nDrwT,            # Top drawer count              
-    nDrwM,            # Middle drawer count
-    nDrwB,            # Bottom drawer count
-    nDrw,             # total drawers
-    sDrw,             # spacing per drawer
-    tBkt              # Thickness Drawer Bracket    
+# quantities
+nDrwT = st.session_state.nDrwT
+nDrwM = st.session_state.nDrwM
+nDrwB = st.session_form.nDrwB
+
+# constants
+tBkt = 2  # thickness of drawer slide bracket
+
+result = calculate_drawer(
+    drwW,   # drwL = drawer length ≈ drwW (frame width = drawer width)
+    drwD,   # drwW = drawer depth (frame depth)
+    drwHt,
+    drwHm,
+    drwHb,
+    tBox,
+    sDado,
+    cBox,
+    cBase,
 )
 
+nDrw = nDrwT + nDrwM + nDrwB  # total drawers
+slides_cost = nDrw * cSlides  # cSlides is from tabs[1]; not in st.session_state
 
+frame = calculate_toolbox_frame(
+    result,     # calculate_drawer output
+    tSlides,    # slide_thickness
+    sRear,      # back spacing
+    sFront,     # front spacing
+    nDrwT,      # top drawer count
+    nDrwM,      # middle drawer count
+    nDrwB,      # bottom drawer count
+    nDrw,       # total drawers
+    sDrw,       # spacing per drawer
+    tBkt        # thickness of drawer bracket
+)
 
 frmHi, frmWi, frmDo, sDrwTot = frame.values()
-##intermediate calcs
-frmHo = frmHi+2*w4040
-frmWo = frmWi+2*w4040
-frmDi = frmDo-2*tUprights
-trlH = frmHo+hCastors+tTbl
-trlW=frmWo
-trlD=frmDo
+## intermediate calcs
+frmHo = frmHi + 2 * w4040
+frmWo = frmWi + 2 * w4040
+frmDi = frmDo - 2 * tUprights
+trlH = frmHo + hCastors + tTbl
+trlW = frmWo
+trlD = frmDo
 
-# Apply fine-tuning adjustments
-# frmWo += adjust_outer_width
-# frmDo += adjust_outer_depth
-# frmHo += adjust_outer_height
-# frmWi += adjust_inner_width
-# frmDi += adjust_inner_depth
-# frmHi += adjust_inner_height
-# sDrwTot += adjust_drawer_spacing
-# -----------------------------
 # FRAME DISPLAY
-# -----------------------------
 st.subheader("Tool Trolley frame dimensions")
 col1, col2, col3 = st.columns(3)
 with col1:
     st.metric("Frame outer Width", f"{frmWo:.0f} mm")
-    st.metric("Frame inner Width",f"{frmWi:.0f} mm")
+    st.metric("Frame inner Width", f"{frmWi:.0f} mm")
 with col2:
     st.metric("Frame outer Depth", f"{frmDo:.0f} mm")
-    st.metric("Frame inner Depth",f"{frmDi:.0f} mm")
+    st.metric("Frame inner Depth", f"{frmDi:.0f} mm")
 with col3:
-    st.metric("Frame outer Height",f"{frmHo:.0f} mm")
-    st.metric("Frame inner Height",f"{frmHi:.0f} mm")
+    st.metric("Frame outer Height", f"{frmHo:.0f} mm")
+    st.metric("Frame inner Height", f"{frmHi:.0f} mm")
 
 with st.expander("Frame Details"):
     st.info(f"Total spacing: {sDrwTot:.0f} mm")
     st.info(f"Tabletop working height: {trlH:.0f} mm")
-   
 
-# -----------------------------
-# CABINET DIMENSIONS
-# -----------------------------
-# st.subheader("Cabinet Dimensions")
-# col1, col2, col3, col4 = st.columns(4)
-# with col1:
-#     st.metric("Inner Width", f"{result['dimensions']['Wi']} mm")
-# with col2:
-#     st.metric("Inner Depth", f"{result['dimensions']['Di']} mm")
-# with col3:
-#     st.metric("Outer Width", f"{result['dimensions']['Wo']} mm")
-# with col4:
-#     st.metric("Outer Depth", f"{result['dimensions']['Do']} mm")
-
-# -----------------------------
-
-# -----------------------------
 # CUTLIST (MERGED)
-# -----------------------------
 st.subheader("Cutlist of Wood and Profiles")
 
-# After result = calculate_drawer(...)
 drawer_parts = generate_drawer_cutlist(result, nDrwT, nDrwM, nDrwB)
 
-# Add frame/tabletop (keep in app.py - simple)
-# profile thickness for profiles (use upright profile thickness)
 profile_thick = tUprights
 
 all_parts = drawer_parts + [
     {"Part": "Profile Verticals", "L (mm)": frmHo, "W (mm)": profile_thick, "Qty": 4},
-    {"Part": "Profile Horizontals", "L (mm)": frmWo, "W (mm)": profile_thick, "Qty": 4},  # Assuming top and bottom
-    {"Part": "Plywood Tabletop", "L (mm)": frmWo+50, "W (mm)": frmDi+50, "Qty": 1}
-]
-
-df_raw = pd.DataFrame(all_parts)
-df_merged = df_raw.groupby(["Part", "L (mm)", "W (mm)"]).agg({"Qty": "sum"}).reset_index()
-st.dataframe(df_merged)
-
-
-# PRICE SUMMARY  # Extract to function for separation of concerns
-# -----------------------------
-st.subheader("Cost Summary")
-
-# Drawer costs (total wood area × price/m²)
-drawers_area_panels = (result["low"]["A_panels_m2"] * nDrwT + 
-                      result["mid"]["A_panels_m2"] * nDrwM + 
-                      result["high"]["A_panels_m2"] * nDrwB)
-drawers_area_bases = (result["low"]["A_base_m2"] * nDrwT + 
-                     result["mid"]["A_base_m2"] * nDrwM + 
-                     result["high"]["A_base_m2"] * nDrwB)
-
-cost_drawers_panels = drawers_area_panels * cBox
-cost_drawers_bases = drawers_area_bases * cBase
-cost_drawers_total = cost_drawers_panels + cost_drawers_bases
-
-# Slides + brackets (4 brackets/drawer = 2 brackets/slide × 2 slides/drawer)
-cost_slides: float = slides_cost  # nDrw × cSlides (pairs)  # Type hint
-cBracket = 2.50  # CHF per bracket (draft)
-cost_brackets = nDrw * 4 * cBracket
-
-# Hardware totals
-cost_hardware = cost_slides + cost_brackets  # + castors + tabletop + fasteners later
-
-# Frame (TODO)
-# profile_length_m = (2*frmHo + 2*frmWo + 2*frmDo) / 1000  # Perimeter × height
-# cProfile = 15  # CHF/m 4040 profile
-# cost_frame = profile_length_m * cProfile
-
-col1, col2, col3, col4 = st.columns(4)
-with col1:
-    st.metric("Drawers Panels", f"CHF {cost_drawers_panels:.1f}")
-with col2:
-    st.metric("Drawers Bases", f"CHF {cost_drawers_bases:.1f}")
-with col3:
-    st.metric("Slides+Brackets", f"CHF {cost_hardware:.1f}")
-with col4:
-    st.metric("Frame", "TBD")  # TODO: profile cutlist
-
-# GRAND TOTAL
-total_cost: float = cost_drawers_total + cost_hardware  # + cost_frame later  # Type hint
-st.metric("**GRAND TOTAL**", f"**CHF {total_cost:.1f}**", 
-          help=f"Drawers: {cost_drawers_total:.1f} + Hardware: {cost_hardware:.1f}")
-
-with st.expander("Cost Breakdown"):
-    st.info(f"**Drawers total area:** Panels {drawers_area_panels:.3f}m² × {cBox}CHF = {cost_drawers_panels:.1f}CHF")
-    st.info(f"**Bases total area:** {drawers_area_bases:.3f}m² × {cBase}CHF = {cost_drawers_bases:.1f}CHF") 
-    st.info(f"**Hardware:** {nDrw} slides ({slides_cost:.1f}CHF) + {nDrw*4} brackets ({cost_brackets:.1f}CHF)")
-
+    {"Part": "Profile Horizontals", "L (mm)": frmWo, "W (mm)": profile_thick, "Qty": 4},
+    {"Part": "Plywood Tabletop", "L (mm)": frmWo + 50} ,]

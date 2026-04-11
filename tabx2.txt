@@ -1,0 +1,129 @@
+ with tabs[2]:
+        st.title("🎯 Fine-tuning")
+        
+        st.info("Adjust dimensions below. Results update on the right →")
+        
+        st.markdown("---")
+        
+        # ADJUST FRAME WIDTH
+        st.subheader("📏 Frame Width")
+        st.caption("Controlled by drawer width or panel thickness")
+        
+        drwL = st.slider(
+            f"Drawer Width [{lblQt}]",
+            min_value=float(drwMin),
+            max_value=float(drwMax),
+            value=float(drwDef),
+            step=float(drwStep),
+            key="fine_drwL"
+        )
+        tBox = st.slider("Plywood thickness", 0, 30, tBox, 1, format="%.0f mm", key="fine_tBox")
+        
+        st.markdown("---")
+        
+        # ADJUST FRAME DEPTH
+        st.subheader("📏 Frame Depth")
+        
+        drwW = st.slider(
+            f"Drawer Depth [{lblQt}]",
+            min_value=float(drwMin),
+            max_value=float(drwWmax),
+            value=float(drwDef),
+            step=float(drwStep),
+            key="fine_drwW"
+        )
+        
+        st.markdown("**Dead Space:**")
+        sRear = st.number_input(
+            "Rear Spacing [mm]",
+            min_value=0,
+            max_value=100,
+            value=40,
+            step=5,
+            key="fine_sRear"
+        )
+        
+        sFront = st.number_input(
+            "Front Spacing [mm]",
+            min_value=0,
+            max_value=100,
+            value=5,
+            step=5,
+            key="fine_sFront"
+        )
+        
+        st.markdown("---")
+        
+        # ADJUST FRAME HEIGHT
+        st.subheader("📏 Frame Height")
+        
+        drwHt = st.slider(
+            f"Top Drawer Height [{lblQt}]",
+            min_value=hMin,
+            max_value=hMax,
+            value=hDef,
+            step=float(ss),
+            key="fine_drwHt"
+        )
+        
+        drwHm = st.slider(
+            f"Middle Drawer Height [{lblQt}]",
+            min_value=hMin,
+            max_value=hMax,
+            value=hDef,
+            step=float(ss),
+            key="fine_drwHm"
+        )
+        
+        drwHb = st.slider(
+            f"Bottom Drawer Height [{lblQt}]",
+            min_value=hMin,
+            max_value=hMax,
+            value=hDef,
+            step=float(ss),
+            key="fine_drwHb"
+        )
+        
+        st.markdown("**Dead Space:**")
+        sDrw = st.number_input(
+            "Drawer Spacing [mm]",
+            min_value=0,
+            max_value=50,
+            value=2,
+            step=1,
+            key="fine_sDrw"
+        )
+        
+        st.info("""
+        **Coarser adjustments:**
+        Go to Configuration tab to adjust drawer quantities
+        """)
+        
+        st.markdown("---")
+        
+        # ADJUST WORKING HEIGHT
+        st.subheader("📏 Working Height")
+        
+        st.number_input(
+            "Castor Height [mm]",
+            min_value=50,
+            max_value=200,
+            value=100,
+            step=10,
+            key="fine_castor"
+        )
+        
+        st.number_input(
+            "Tabletop Thickness [mm]",
+            min_value=10,
+            max_value=50,
+            value=20,
+            step=5,
+            key="fine_tabletop"
+        )
+        
+        st.info("""
+        **Coarser adjustments:**
+        Choose different castor models or adjust drawer heights/quantities
+        """)
+    #
