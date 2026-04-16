@@ -392,7 +392,7 @@ tTbl = st.session_state.tTbl
 # quantities
 nDrwT = st.session_state.nDrwT
 nDrwM = st.session_state.nDrwM
-nDrwB = st.session_form.nDrwB
+nDrwB = st.session_state.nDrwB
 
 # constants
 tBkt = 2  # thickness of drawer slide bracket
