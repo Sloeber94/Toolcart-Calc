@@ -1,67 +1,64 @@
 from typing import Dict, List, Any
 
+
 def calculate_toolbox_frame(drawers: Dict[str, Any], tSlides: float, sRear: float, sFront: float, nDrwT: int, nDrwM: int, nDrwB: int, nDrw: int, sDrw: float, tBkt: float) -> Dict[str, float]:
     """
     Calculate toolbox frame dimensions around drawer stack.
-    
+
     Args:
         drawers: result dict from calculate_drawer()
         tSlides: Drawer slide thickness (mm)
-        sRear: Rear clearance behind drawers (mm) 
-        sFront: 
+        sRear: Rear clearance behind drawers (mm)
+        sFront: Front clearance (mm)
         nDrwT: Number of top drawers
         nDrwM: Number of mid drawers
         nDrwB: Number of bottom drawers
         nDrw: Total drawers
         sDrw: Spacing between drawers (mm)
         tBkt: Thickness drawer bracket
-    
+
     Returns:
         dict with frame dimensions and spacing info
     """
-
     dims = drawers['dimensions']
-    
-    # Dynamic total height from quantities
-    h_total = (drawers['low']['height'] * nDrwT + 
-               drawers['mid']['height'] * nDrwM + 
-               drawers['high']['height'] * nDrwB)
-    
+
+    h_total = (
+        drawers['low']['height']  * nDrwT +
+        drawers['mid']['height']  * nDrwM +
+        drawers['high']['height'] * nDrwB
+    )
+
     sDrwTot = (nDrw + 1) * sDrw
-
-   #Dimensions for: Length * Width * Height 
-    #Drawers:       Width  * Depth * Height
-    #Frame:         Width  * Depth * Height
-
+    if sDrwTot == 0:
+        raise ValueError("Spacing cannot be zero")
 
     frmHi = h_total + sDrwTot
-    frmWi = dims['Wo'] + 2 * (tSlides+tBkt)
-    frmDo = dims['Do'] + sRear+sFront
-    
-    if sDrwTot == 0: raise ValueError("Spacing cannot be zero")  # Validation
-    return {
-        'frmHi': frmHi,
-        'frmWi': frmWi,
-        'frmDo': frmDo,
-        'sDrwTot': sDrwTot,
+    frmWi = dims['Wo'] + 2 * (tSlides + tBkt)
+    frmDo = dims['Do'] + sRear + sFront
 
+    return {
+        'frmHi':   frmHi,
+        'frmWi':   frmWi,
+        'frmDo':   frmDo,
+        'sDrwTot': sDrwTot,
     }
+
 
 def calculate_drawer(drwL: float, drwW: float, drwHt: float, drwHm: float, drwHb: float, tBox: float, sDado: float, cBox: float, cBase: float) -> Dict[str, Any]:
     """
-    Calculate cost and cutlist for drawer boxes.
-    
+    Calculate cost and cutlist dimensions for drawer boxes.
+
     Args:
-        drwL: drawer Length (Inner width)
-        drwW: drawer Width (Inner depth)
-        drwHt, drwHm, drwHb: Top, Mid, Bottom drawer heights
-        tBox: Material thickness sides
-        sDado: Dado thickness (mm, default 6)
-        cBox: CHF per m² sides
-        cBase: CHF per m² base
-    
+        drwL: Drawer inner width (mm)
+        drwW: Drawer inner depth (mm)
+        drwHt, drwHm, drwHb: Top, Mid, Bottom drawer heights (mm)
+        tBox: Panel material thickness (mm)
+        sDado: Dado depth (mm)
+        cBox: Price per m² for panel wood (CHF)
+        cBase: Price per m² for base wood (CHF)
+
     Returns:
-        dict with calculations for each height
+        dict with cost calculations and dimensions for each drawer size
     """
     Wi = drwL
     Di = drwW
@@ -69,72 +66,61 @@ def calculate_drawer(drwL: float, drwW: float, drwHt: float, drwHm: float, drwHb
     Do = Di + 2 * tBox
     Wb = Wi + 2 * sDado
     Db = Di + 2 * sDado
-    
+
     def cost_for_height(h):
-        A_front = 2 * (Wi * h) * 1e-6
-        A_sides = 2 * (Do * h) * 1e-6
+        A_front  = 2 * (Wi * h) * 1e-6
+        A_sides  = 2 * (Do * h) * 1e-6
         A_panels = A_front + A_sides
-        A_base = (Wb * Db) * 1e-6 if Wb > 0 and Db > 0 else 0  # Avoid negatives
-        
-        y_panels = cBox * A_panels
-        y_base = cBase * A_base
-        y_total = y_panels + y_base
-        
+        A_base   = (Wb * Db) * 1e-6 if Wb > 0 and Db > 0 else 0
+
         return {
-            'height': h,
-            'A_front_m2': A_front,
-            'A_sides_m2': A_sides,
+            'height':      h,
+            'A_front_m2':  A_front,
+            'A_sides_m2':  A_sides,
             'A_panels_m2': A_panels,
-            'A_base_m2': A_base,
-            'cost_panels': y_panels,
-            'cost_base': y_base,
-            'cost_total': y_total
+            'A_base_m2':   A_base,
+            'cost_panels': cBox  * A_panels,
+            'cost_base':   cBase * A_base,
+            'cost_total':  cBox  * A_panels + cBase * A_base,
         }
-    
+
     return {
-        'low': cost_for_height(drwHt),
-        'mid': cost_for_height(drwHm),
+        'low':  cost_for_height(drwHt),
+        'mid':  cost_for_height(drwHm),
         'high': cost_for_height(drwHb),
         'dimensions': {
             'drwL': drwL, 'drwW': drwW,
             'Wo': Wo, 'Do': Do,
-            'Wb': Wb, 'Db': Db  # Ensure positive values
+            'Wb': Wb, 'Db': Db,
         }
     }
 
-def generate_drawer_cutlist(result, nDrwT, nDrwM, nDrwB):
-    """Generate complete drawer cutlist from result dict."""
+
+def generate_drawer_cutlist(result: Dict[str, Any], nDrwT: int, nDrwM: int, nDrwB: int) -> List[Dict]:
+    """Generate drawer cutlist with material and belongs-to labels."""
     all_parts = []
     dims = result['dimensions']
-    
-    for drawer_type, height_key, qty in [
-        ("Top", "low", nDrwT),
-        ("Mid", "mid", nDrwM), 
-        ("Bottom", "high", nDrwB)
+
+    for belongs_to, height_key, qty in [
+        ("Top Drawer",    "low",  nDrwT),
+        ("Middle Drawer", "mid",  nDrwM),
+        ("Bottom Drawer", "high", nDrwB),
     ]:
         h = result[height_key]['height']
-        
-        # Generate parts for this height
-        parts = generate_cutlist(
-            drwL=dims['drwL'], drwW=dims['drwW'], 
-            h=h, Wo=dims['Wo'], Do=dims['Do'], 
-            Wb=dims['Wb'], Db=dims['Db'], qty=qty
-        )
-        
-        # Add drawer type
-        for part in parts:
-            part['Drawer'] = drawer_type
-            
+        parts = [
+            {'Part': 'Fronts', 'Qty': 2 * qty, 'L (mm)': dims['drwL'], 'W (mm)': h,           'Material': 'Drawer Panel Wood', 'Belongs To': belongs_to},
+            {'Part': 'Sides',  'Qty': 2 * qty, 'L (mm)': dims['Do'],   'W (mm)': h,           'Material': 'Drawer Panel Wood', 'Belongs To': belongs_to},
+            {'Part': 'Base',   'Qty': qty,     'L (mm)': dims['Wb'],   'W (mm)': dims['Db'],  'Material': 'Drawer Base Wood',  'Belongs To': belongs_to},
+        ]
         all_parts.extend(parts)
-    
+
     return all_parts
 
-# Your existing single-drawer function (unchanged)
-def generate_cutlist(drwL, drwW, h, Wo, Do, Wb, Db, qty=1):
-    """Generate cutlist table for one drawer height."""
-    return [  # Updated keys to match table
-        {'Part': 'Fronts', 'Qty': 2*qty, 'L (mm)': drwL, 'W (mm)': h},
-        {'Part': 'Sides', 'Qty': 2*qty, 'L (mm)': Do, 'W (mm)': h},
-        {'Part': 'Base', 'Qty': qty, 'L (mm)': Wb, 'W (mm)': Db}
-    ]
 
+def generate_frame_cutlist(frmHo: float, frmWo: float, frmDo: float, tUprights: int, uprights_profile: str) -> List[Dict]:
+    """Generate frame profile cutlist with material and belongs-to labels."""
+    return [
+        {'Part': 'Verticals',   'Qty': 4, 'L (mm)': frmHo,      'W (mm)': '',     'Material': uprights_profile, 'Belongs To': 'Frame'},
+        {'Part': 'Horizontals', 'Qty': 4, 'L (mm)': frmWo,      'W (mm)': '',     'Material': '4040',           'Belongs To': 'Frame'},
+        {'Part': 'Tabletop',    'Qty': 1, 'L (mm)': frmWo + 50, 'W (mm)': frmDo,  'Material': 'Drawer Panel Wood', 'Belongs To': 'Frame'},
+    ]
