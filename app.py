@@ -275,8 +275,8 @@ with st.expander("Details"):
 # ---------------------------------------------------------------------------
 st.subheader("Cutlist of Wood and Profiles")
 
-drawer_parts = generate_drawer_cutlist(result, nDrwT, nDrwM, nDrwB)
-frame_parts  = generate_frame_cutlist(frmHo, frmWo, frmDo, tUprights, uprights)
+drawer_parts = generate_drawer_cutlist(result, nDrwT, nDrwM, nDrwB,tBox,tBase)
+frame_parts  = generate_frame_cutlist(frmHo, frmWo, frmDo, tUprights, uprights,tTbl)
 
 all_parts = drawer_parts + frame_parts
 
@@ -286,12 +286,13 @@ st.dataframe(
     df,
     hide_index=True,
     width='stretch',
+    height='content',
     column_config={
-        "Belongs To": st.column_config.TextColumn("Belongs To", width="medium"),
-        "Part":       st.column_config.TextColumn("Part",       width="small"),
-        "Material":   st.column_config.TextColumn("Material",   width="medium"),
-        "L (mm)":     st.column_config.NumberColumn("L (mm)",   width="small"),
-        "W (mm)":     st.column_config.Column("W (mm)",         width="small"),
-        "Qty":        st.column_config.NumberColumn("Qty",      width="small"),
+        "Belongs To": st.column_config.TextColumn("Belongs To", width="content"),
+        "Part":       st.column_config.TextColumn("Part",       width="content"),
+        "Material":   st.column_config.TextColumn("Material",   width="content"),
+        "L (mm)":     st.column_config.NumberColumn("L (mm)",   width="content", format="%.1f"),
+        "W (mm)":     st.column_config.NumberColumn("W (mm)",   width="content", format="%.1f"),
+        "Qty":        st.column_config.NumberColumn("Qty",      width="content"),
     }
 )

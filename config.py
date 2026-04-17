@@ -79,10 +79,10 @@ NUMBER_RANGES = {
 # PRICE FIELDS  (label, session_state key, default)
 # ---------------------------------------------------------------------------
 PRICE_FIELDS = [
-    ("Plywood per m²", "cBox",  25.0),
-    ("Plywood base per m²",   "cBase", 15.0),
-    ("4040 profiles per m",  "c4040", 15.0),
-    ("4080 profiles per m",  "c4080", 20.0),
+    ("Plywood per m²", "cBox",  25),
+    ("Plywood base per m²",   "cBase", 15),
+    ("4040 profiles per m",  "c4040", 15),
+    ("4080 profiles per m",  "c4080", 20),
 ]
 
 # ---------------------------------------------------------------------------

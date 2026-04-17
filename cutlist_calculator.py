@@ -96,8 +96,8 @@ def calculate_drawer(drwL: float, drwW: float, drwHt: float, drwHm: float, drwHb
     }
 
 
-def generate_drawer_cutlist(result: Dict[str, Any], nDrwT: int, nDrwM: int, nDrwB: int) -> List[Dict]:
-    """Generate drawer cutlist with material and belongs-to labels."""
+def generate_drawer_cutlist(result: Dict[str, Any], nDrwT: int, nDrwM: int, nDrwB: int, tBox: int, tBase: int) -> List[Dict]:
+    """Generate drawer cutlist with dynamic material labels."""
     all_parts = []
     dims = result['dimensions']
 
@@ -108,19 +108,24 @@ def generate_drawer_cutlist(result: Dict[str, Any], nDrwT: int, nDrwM: int, nDrw
     ]:
         h = result[height_key]['height']
         parts = [
-            {'Part': 'Fronts', 'Qty': 2 * qty, 'L (mm)': dims['drwL'], 'W (mm)': h,           'Material': 'Drawer Panel Wood', 'Belongs To': belongs_to},
-            {'Part': 'Sides',  'Qty': 2 * qty, 'L (mm)': dims['Do'],   'W (mm)': h,           'Material': 'Drawer Panel Wood', 'Belongs To': belongs_to},
-            {'Part': 'Base',   'Qty': qty,     'L (mm)': dims['Wb'],   'W (mm)': dims['Db'],  'Material': 'Drawer Base Wood',  'Belongs To': belongs_to},
+            {'Part': 'Fronts', 'Qty': 2 * qty, 'L (mm)': dims['drwL'], 'W (mm)': h,          'Material': f"Box wood {int(tBox)} mm",  'Belongs To': belongs_to},
+            {'Part': 'Sides',  'Qty': 2 * qty, 'L (mm)': dims['Do'],   'W (mm)': h,          'Material': f"Box wood {int(tBox)} mm",  'Belongs To': belongs_to},
+            {'Part': 'Base',   'Qty': qty,     'L (mm)': dims['Wb'],   'W (mm)': dims['Db'], 'Material': f"Base wood {int(tBase)} mm", 'Belongs To': belongs_to},
         ]
         all_parts.extend(parts)
 
     return all_parts
 
 
-def generate_frame_cutlist(frmHo: float, frmWo: float, frmDo: float, tUprights: int, uprights_profile: str) -> List[Dict]:
-    """Generate frame profile cutlist with material and belongs-to labels."""
+def generate_frame_cutlist(frmHo, frmWo, frmDo, tUprights, uprights_profile, tTbl:int):
+    # Depth horizontals sit between uprights → subtract 2x upright width
+    hDepthL = frmDo - 2 * tUprights
+
     return [
-        {'Part': 'Verticals',   'Qty': 4, 'L (mm)': frmHo,      'W (mm)': '',     'Material': uprights_profile, 'Belongs To': 'Frame'},
-        {'Part': 'Horizontals', 'Qty': 4, 'L (mm)': frmWo,      'W (mm)': '',     'Material': '4040',           'Belongs To': 'Frame'},
-        {'Part': 'Tabletop',    'Qty': 1, 'L (mm)': frmWo + 50, 'W (mm)': frmDo,  'Material': 'Drawer Panel Wood', 'Belongs To': 'Frame'},
+        {'Part': 'Uprights',         'Qty': 4, 'L (mm)': frmHo,      'W (mm)': '',    'Material': 
+        f"{uprights_profile} Profile",    'Belongs To': 'Frame'},
+        {'Part': 'Horizontals Width', 'Qty': 4, 'L (mm)': frmWo,      'W (mm)': '',    'Material': '4040 Profile',              'Belongs To': 'Frame'},
+        {'Part': 'Horizontals Depth', 'Qty': 4, 'L (mm)': hDepthL,    'W (mm)': '',    'Material': '4040 Profile',    'Belongs To': 'Frame'},
+        {'Part': 'Tabletop',          'Qty': 1, 'L (mm)': frmWo + 50, 'W (mm)': frmDo, 'Material':
+        f"Tabletop wood {int(tTbl)} mm", 'Belongs To': 'Frame'},
     ]
