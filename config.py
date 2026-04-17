@@ -1,59 +1,137 @@
-"""Drawer Calculator Defaults + Sliders"""
-from typing import Dict, Tuple, Any
+"""Tool Trolley Calculator — Central Config
+All defaults, ranges, constants and slide data live here.
+app.py imports from this file and contains only UI logic.
+"""
 
-# Fixed Defaults
+# ---------------------------------------------------------------------------
+# DEFAULTS (always in mm unless noted)
+# ---------------------------------------------------------------------------
 DEFAULTS = {
-    # Dimensions
-    "Wi": 20*42, "Di": 462,
-    
-    # Heights
-    "hl": 80, "hm": 150, "hh": 250,
-    
-    # Quantities
-    "nl": 7, "nm": 4, "nh": 2,
-    
-    # Prices & Hardware
-    "Cp": 30.0, "Cb": 10.0,
-    "slide_price": 15.0,
-    "slide_thick": 25.0, 
-    "frame_clear": 50.0,
-    "td": 6.0, "t": 15.0,
+    # Drawer dimensions
+    "drwW":    650,   # drawer width
+    "drwD":    450,   # drawer depth
+    "drwHt":    50,   # top drawer height
+    "drwHm":   100,   # middle drawer height
+    "drwHb":   175,   # bottom drawer height
+
+    # Drawer quantities
+    "nDrwT":     6,   # top drawer count
+    "nDrwM":     3,   # middle drawer count
+    "nDrwB":     2,   # bottom drawer count
+
+    # Accessories
+    "hCastors": 100,  # castor height
+    "tTbl":      18,  # tabletop thickness
+
+    # Wood dimensions
+    "tBox":      15,  # plywood thickness
+    "tBase":      5,  # base panel thickness
+    "sDado":      7,  # dado depth
+
+    # Clearances
+    "sRear":     40,  # rear clearance
+    "sFront":     5,  # front clearance
+    "sDrw":       2,  # spacing per drawer
+
+    # Prices (CHF)
+    "cBox":    25.0,  # drawer panels per m²
+    "cBase":   15.0,  # drawer base per m²
+    "c4040":   15.0,  # 4040 profile per m
+    "c4080":   20.0,  # 4080 profile per m
+
+    # Gridfinity
+    "gf_mode": False,
+    "gf":        42,  # 1 gridfinity unit = 42 mm
 }
 
-# Slider Tuples: (min, max, default, step)  # Use TypedDict for better typing
-SLIDERS: Dict[str, Tuple[float, float, float, float]] = {
-    # Dimensions
-    "Wi": (50, 2000, DEFAULTS["Wi"], 10),
-    "Di": (50, 2000, DEFAULTS["Di"], 10),
-    
-    # Heights
-    "hl": (40, 300, DEFAULTS["hl"], 10),
-    "hm": (40, 300, DEFAULTS["hm"], 10),
-    "hh": (40, 300, DEFAULTS["hh"], 10),
-    
-    # Quantities (int step=1)
-    "nl": (0, 10, DEFAULTS["nl"], 1),
-    "nm": (0, 10, DEFAULTS["nm"], 1),
-    "nh": (0, 10, DEFAULTS["nh"], 1),
-    
-    # Slides
-    "slide_price": (5.0, 25.0, DEFAULTS["slide_price"], 0.5),
-    "slide_thick": (10.0, 30.0, DEFAULTS["slide_thick"], 0.1),
+# ---------------------------------------------------------------------------
+# SLIDER RANGES  (min, max, step)  — all in mm
+# ---------------------------------------------------------------------------
+SLIDER_RANGES = {
+    "drwW":    (0,    2000,   5),
+    "drwD":    (0,    1000,  50),
+    "drwHt":   (0,     500,   1),
+    "drwHm":   (0,     500,   1),
+    "drwHb":   (0,     500,   1),
+    "nDrwT":   (0,      20,   1),
+    "nDrwM":   (0,      20,   1),
+    "nDrwB":   (0,      20,   1),
+    "hCastors":(0,     200,   1),
+    "tTbl":    (0,      50,   1),
+    "tBox":    (0,      30,   1),
+    "tBase":   (0,      30,   1),
+    # dado depth max is computed dynamically as tBox // 2
 }
-  # Consider using a dataclass for DEFAULTS to avoid dict access errors
-# Number Input Ranges (min, max, step)
+
+# ---------------------------------------------------------------------------
+# NUMBER INPUT RANGES  (min, max, step)
+# ---------------------------------------------------------------------------
 NUMBER_RANGES = {
-    "Cp": (5.0, 100.0, 1.0),
-    "Cb": (2.0, 50.0, 1.0),
-    "frame_clear": (30.0, 100.0, 5.0),
-    "td": (3.0, 15.0, 0.1),
-    "t": (5.0, 30.0, 0.1),
+    "sFront":  (0,   100,   1),
+    "sRear":   (0,   100,   1),
+    "cBox":    (0.0, 200.0, 1.0),
+    "cBase":   (0.0, 200.0, 1.0),
+    "c4040":   (0.0, 200.0, 1.0),
+    "c4080":   (0.0, 200.0, 1.0),
 }
 
-# Gridfinity (1U = 42mm width/depth, 7mm height → 0.5U=21mm, 1U=42mm)
+# ---------------------------------------------------------------------------
+# PRICE FIELDS  (label, session_state key, default)
+# ---------------------------------------------------------------------------
+PRICE_FIELDS = [
+    ("Drawer panels per m²", "cBox",  25.0),
+    ("Drawer base per m²",   "cBase", 15.0),
+    ("4040 profiles per m",  "c4040", 15.0),
+    ("4080 profiles per m",  "c4080", 20.0),
+]
+
+# ---------------------------------------------------------------------------
+# DRAWER SLIDE DATA  {(feature, load_class): (price_chf, thickness_mm)}
+# ---------------------------------------------------------------------------
+SLIDE_DATA = {
+    ("Basic",          "Light"):  ( 5, 12.0),
+    ("Basic",          "Medium"): ( 8, 15.0),
+    ("Basic",          "Heavy"):  (10, 19.0),
+    ("Bumper",         "Light"):  ( 8, 15.0),
+    ("Bumper",         "Medium"): (11, 19.0),
+    ("Bumper",         "Heavy"):  (14, 22.0),
+    ("Soft-Close",     "Light"):  (12, 19.0),
+    ("Soft-Close",     "Medium"): (16, 22.0),
+    ("Soft-Close",     "Heavy"):  (20, 25.0),
+    ("Push-to-Open",   "Light"):  (15, 22.0),
+    ("Push-to-Open",   "Medium"): (19, 25.0),
+    ("Push-to-Open",   "Heavy"):  (24, 28.0),
+}
+
+SLIDE_FEATURES    = ["Basic", "Bumper", "Soft-Close", "Push-to-Open"]
+SLIDE_LOAD_CLASSES = ["Light", "Medium", "Heavy"]
+
+# ---------------------------------------------------------------------------
+# PROFILE / FRAME CONSTANTS
+# ---------------------------------------------------------------------------
+PROFILE_WIDTHS = {
+    "4040": 40,
+    "4080": 80,
+}
+
+FRAME_CLEAR_DEFAULTS = {   # default rear clearance per profile type
+    "4040": 10,
+    "4080": 50,
+}
+
+# Fixed construction constants (not user-editable)
+CONSTANTS = {
+    "tBkt":    2,   # drawer slide bracket thickness
+    "sRear40": 20,  # rear spacing for 4040 profile
+    "sRear80": 35,  # rear spacing for 4080 profile
+}
+
+# ---------------------------------------------------------------------------
+# GRIDFINITY
+# ---------------------------------------------------------------------------
 GRIDFINITY = {
-    "unit": 42,      # Width/depth step
-    "half_unit": 21, # Height 0.5U
-    "unit_height": 42,  # Height 1U (6x7mm)
-    "clearance": 0.5,   # Optional bin clearance
+    "unit":        42,   # width/depth step (mm)
+    "half_unit":   21,   # height 0.5U
+    "unit_height": 42,   # height 1U
+    "clearance":  0.5,   # bin clearance
 }
