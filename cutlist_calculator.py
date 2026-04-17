@@ -120,9 +120,10 @@ def generate_drawer_cutlist(result: Dict[str, Any], nDrwT: int, nDrwM: int, nDrw
 def generate_frame_cutlist(frmHo: float, frmWo: float, frmDo: float, tUprights: int, uprights_profile: str) -> List[Dict]:
     """Generate frame profile cutlist with material and belongs-to labels."""
     return [
-        {'Part': 'Verticals',   'Qty': 4, 'L (mm)': frmHo,      'W (mm)': '',     'Material': uprights_profile,     'Belongs To': 'Frame'},
-        {'Part': 'Horizontals', 'Qty': 4, 'L (mm)': frmWo,      'W (mm)': '',     'Material': '4040',               'Belongs To': 'Frame'},
-        {'Part': 'Tabletop',    'Qty': 1, 'L (mm)': frmWo + 50, 'W (mm)': frmDo,  'Material': 'Drawer Panel Wood',  'Belongs To': 'Frame'},
+        {'Part': 'Verticals',          'Qty': 4, 'L (mm)': frmHo,      'W (mm)': '',    'Material': uprights_profile,    'Belongs To': 'Frame'},
+        {'Part': 'Horizontals (W)',     'Qty': 4, 'L (mm)': frmWo,      'W (mm)': '',    'Material': '4040',              'Belongs To': 'Frame'},
+        {'Part': 'Horizontals (D)',     'Qty': 4, 'L (mm)': frmDo,      'W (mm)': '',    'Material': '4040',              'Belongs To': 'Frame'},
+        {'Part': 'Tabletop',           'Qty': 1, 'L (mm)': frmWo, 'W (mm)': frmDo, 'Material': 'Drawer Panel Wood', 'Belongs To': 'Frame'},
     ]
 
 

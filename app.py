@@ -108,9 +108,7 @@ with st.sidebar:
                 key=f"{key}_qty",
             )
 
-        st.subheader("Accessories")
-        mmSlider("Castors Height",     "hCastors", *SLIDER_RANGES["hCastors"][:2], SLIDER_RANGES["hCastors"][2], showMm=False, gf=False)
-        mmSlider("Tabletop thickness", "tTbl",     *SLIDER_RANGES["tTbl"][:2],     SLIDER_RANGES["tTbl"][2],     showMm=False, gf=False)
+
 
     # ── TAB 1: CONSTANTS ────────────────────────────────────────────────────
     with tabs[1]:
@@ -129,39 +127,33 @@ with st.sidebar:
                         key=f"{key}_price",
                     )
 
-        st.subheader("Drawer Slides")
-        col1, col2 = st.columns(2)
-        with col1:
-            selectedFeature = st.selectbox("Features",   SLIDE_FEATURES,    index=0)
-        with col2:
-            selectedLoad    = st.selectbox("Load Class", SLIDE_LOAD_CLASSES, index=1)
-
-        cSlides, tSlides = SLIDE_DATA.get((selectedFeature, selectedLoad), (10, 19.0))
-        st.caption(f"Price per pair: {cSlides} CHF",     text_alignment="center")
-        st.caption(f"Slide Thickness: {tSlides:.1f} mm", text_alignment="center")
-
         st.subheader("Accessories")
         col1, col2 = st.columns(2)
         with col1:
-            mn, mx, step = NUMBER_RANGES["cTbl"]
-            st.session_state["cTbl"] = st.number_input(
-                "Tabletop per m²",
-                min_value=float(mn), max_value=float(mx),
-                value=float(st.session_state["cTbl"]),
-                step=float(step),
-                format="%.0f",
-                key="cTbl_price",
+            st.session_state["hCastors"] = st.number_input(
+                "Castors Height (mm)",
+                min_value=0, max_value=200, step=1,
+                value=st.session_state["hCastors"],
+                key="hCastors_input",
             )
         with col2:
-            mn, mx, step = NUMBER_RANGES["cCastor"]
-            st.session_state["cCastor"] = st.number_input(
-                "Castor per piece",
-                min_value=float(mn), max_value=float(mx),
-                value=float(st.session_state["cCastor"]),
-                step=float(step),
-                format="%.1f",
-                key="cCastor_price",
+            st.session_state["tTbl"] = st.number_input(
+                "Tabletop thickness (mm)",
+                min_value=0, max_value=50, step=1,
+                value=st.session_state["tTbl"],
+                key="tTbl_input",
             )
+
+        col1, col2 = st.columns(2)
+        with col1:
+            selectedFeature = st.selectbox("Drawer Slide", SLIDE_FEATURES,    index=0)
+        with col2:
+            selectedLoad    = st.selectbox("Load Class",   SLIDE_LOAD_CLASSES, index=1)
+
+        cSlides, tSlides = SLIDE_DATA.get((selectedFeature, selectedLoad), (10, 19.0))
+        cTbl    = st.session_state.cTbl
+        cCastor = st.session_state.cCastor
+
 
         st.subheader("Dimensions")
         col1, col2 = st.columns([2, 3])
@@ -190,22 +182,30 @@ with st.sidebar:
         col1, col2, col3 = st.columns(3)
 
         with col1:
-            mn, mx, step = SLIDER_RANGES["tBox"]
-            st.session_state["tBox"] = st.slider("Plywood thickness", int(mn), int(mx), st.session_state["tBox"], int(step), format="%.0f mm")
-
+            st.session_state["tBox"] = st.number_input(
+                "Drawer thickness (mm)",
+                min_value=0, max_value=30, step=1,
+                value=st.session_state["tBox"],
+                key="tBox_input",
+            )
         with col2:
-            mn, mx, step = SLIDER_RANGES["tBase"]
-            st.session_state["tBase"] = st.slider("Base thickness", int(mn), int(mx), st.session_state["tBase"], int(step), format="%.0f mm")
-
+            st.session_state["tBase"] = st.number_input(
+                "Base thickness (mm)",
+                min_value=0, max_value=30, step=1,
+                value=st.session_state["tBase"],
+                key="tBase_input",
+            )
         with col3:
             sDadoMax = max(int(st.session_state["tBox"] // 2), 3)
-            st.session_state["sDado"] = st.slider(
-                "Dado depth", min_value=2, max_value=sDadoMax,
-                value=min(st.session_state["sDado"], sDadoMax),
-                step=1, format="%.0f mm",
+            if st.session_state["sDado"] > sDadoMax:
+                st.session_state["sDado"] = sDadoMax
+            st.session_state["sDado"] = st.number_input(
+                "Dado depth (mm)",
+                min_value=2, max_value=sDadoMax, step=1,
+                value=st.session_state["sDado"],
+                key="sDado_input",
                 help="Default: <50% of plywood thickness",
             )
-
 
 # ---------------------------------------------------------------------------
 # READ ALL VALUES FROM SESSION STATE
@@ -338,11 +338,56 @@ costs = calculate_costs(
     frmWo=frmWo, frmDo=frmDo, tTbl=tTbl,
 )
 
+# Derived quantities from already-computed values
+tbl_area_m2    = ((frmWo + 50) * frmDo) * 1e-6
+panels_area_m2 = sum(result[t]['A_panels_m2'] * q for t, q in [('low', nDrwT), ('mid', nDrwM), ('high', nDrwB)])
+base_area_m2   = sum(result[t]['A_base_m2']   * q for t, q in [('low', nDrwT), ('mid', nDrwM), ('high', nDrwB)])
+len_4040_m     = sum(p['Qty'] * p['L (mm)'] / 1000 for p in frame_parts if p['Material'] == '4040')
+len_uprights_m = sum(p['Qty'] * p['L (mm)'] / 1000 for p in frame_parts if p['Material'] == uprights and uprights != '4040')
+
 cost_df = pd.DataFrame([
-    {"Category": "Drawer Slides",  "Detail": f"{nDrw} pairs × {cSlides} CHF",                                           "Cost (CHF)": costs['cost_slides']},
-    {"Category": "Frame Profiles", "Detail": f"Aluminium profiles ({uprights} uprights + 4040 horizontals)",             "Cost (CHF)": costs['cost_frame']},
-    {"Category": "Drawers",        "Detail": f"Panel wood + base wood ({nDrw} drawers)",                                 "Cost (CHF)": costs['cost_drawers']},
-    {"Category": "Accessories",    "Detail": f"Tabletop ({cTbl} CHF/m²) + Castors (4 × {cCastor} CHF)",                 "Cost (CHF)": costs['cost_accessories']},
+    {
+        "Category": "Frame",
+        "Description": "4040 Profiles",
+        "Qty": f"{len_4040_m:.2f} m",
+        "Cost (CHF)": c4040 * len_4040_m,
+    },
+    *([{
+        "Category": "Frame",
+        "Description": f"{uprights} Profiles",
+        "Qty": f"{len_uprights_m:.2f} m",
+        "Cost (CHF)": c4080 * len_uprights_m,
+    }] if uprights != '4040' else []),
+    {
+        "Category": "Wood",
+        "Description": "Panel wood",
+        "Qty": f"{panels_area_m2:.2f} m²",
+        "Cost (CHF)": cBox * panels_area_m2,
+    },
+    {
+        "Category": "Wood",
+        "Description": "Base wood",
+        "Qty": f"{base_area_m2:.2f} m²",
+        "Cost (CHF)": cBase * base_area_m2,
+    },
+    {
+        "Category": "Accessories",
+        "Description": "Drawer Slides",
+        "Qty": f"{nDrw} pairs",
+        "Cost (CHF)": cSlides * nDrw,
+    },
+    {
+        "Category": "Accessories",
+        "Description": "Tabletop",
+        "Qty": f"{tbl_area_m2:.2f} m²",
+        "Cost (CHF)": cTbl * tbl_area_m2,
+    },
+    {
+        "Category": "Accessories",
+        "Description": "Wheels",
+        "Qty": "4 pcs",
+        "Cost (CHF)": cCastor * 4,
+    },
 ])
 
 st.dataframe(
@@ -351,12 +396,15 @@ st.dataframe(
     use_container_width=True,
     height="content",
     column_config={
-        "Category":   st.column_config.TextColumn("Category",   width="medium"),
-        "Detail":     st.column_config.TextColumn("Detail",      width="large"),
-        "Cost (CHF)": st.column_config.NumberColumn("Cost (CHF)", width="small", format="%.2f"),
+        "Category":    st.column_config.TextColumn("Category",    width="content"),
+        "Description": st.column_config.TextColumn("Description", width="content"),
+        "Qty":         st.column_config.TextColumn("Qty",         width="content"),
+        "Cost (CHF)":  st.column_config.NumberColumn("Cost (CHF)",  width="content", format="%.2f"),
     }
 )
 
-col1, col2, col3 = st.columns(3)
-with col2:
-    st.metric("Total Estimated Cost", f"CHF {costs['total']:.2f}")
+st.metric("Total Estimated Cost", f"CHF {costs['total']:.2f}")
+st.caption(f"Slides per pair:   {cSlides} CHF",     text_alignment="center")
+st.caption(f"Tabletop per m²:   {cTbl:.0f} CHF",   text_alignment="center")
+st.caption(f"Wheels per piece:  {cCastor:.0f} CHF", text_alignment="center")
+    
