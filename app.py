@@ -2,7 +2,7 @@ import os
 import pandas as pd
 import streamlit as st
 from config import DEFAULTS, SLIDER_RANGES, NUMBER_RANGES, PRICE_FIELDS, SLIDE_DATA, SLIDE_FEATURES, SLIDE_LOAD_CLASSES, PROFILE_WIDTHS, FRAME_CLEAR_DEFAULTS, CONSTANTS
-from cutlist_calculator import calculate_drawer, generate_cutlist, generate_drawer_cutlist, calculate_toolbox_frame
+from cutlist_calculator import calculate_drawer, generate_drawer_cutlist, generate_frame_cutlist, calculate_toolbox_frame
 
 
 def load_css():
@@ -71,7 +71,7 @@ def mmSlider(label, key, minVal, maxVal, stepVal, showMm=False, gf=True):
 # ---------------------------------------------------------------------------
 with st.sidebar:
     st.image("assets/banner.png", width='stretch')
-   
+
     st.header("Configuration")
 
     st.checkbox("Gridfinity Mode", key="gf_mode")
@@ -137,7 +137,7 @@ with st.sidebar:
             selectedLoad    = st.selectbox("Load Class", SLIDE_LOAD_CLASSES, index=1)
 
         cSlides, tSlides = SLIDE_DATA.get((selectedFeature, selectedLoad), (10, 19.0))
-        st.caption(f"Price per pair: {cSlides} CHF",    text_alignment="center")
+        st.caption(f"Price per pair: {cSlides} CHF",     text_alignment="center")
         st.caption(f"Slide Thickness: {tSlides:.1f} mm", text_alignment="center")
 
         st.subheader("Dimensions")
@@ -176,7 +176,6 @@ with st.sidebar:
 
         with col3:
             sDadoMax = max(int(st.session_state["tBox"] // 2), 3)
-            sDadoDef = min(max(int(st.session_state["tBox"] // 2), 2), sDadoMax)
             st.session_state["sDado"] = st.slider(
                 "Dado depth", min_value=2, max_value=sDadoMax,
                 value=min(st.session_state["sDado"], sDadoMax),
@@ -215,7 +214,6 @@ w4080    = PROFILE_WIDTHS["4080"]
 # ---------------------------------------------------------------------------
 # CALCULATIONS
 # ---------------------------------------------------------------------------
-# ---------------------------------------------------------------------------
 result = calculate_drawer(drwW, drwD, drwHt, drwHm, drwHb, tBox, sDado, cBox, cBase)
 
 dims         = result['dimensions']
@@ -240,6 +238,7 @@ trlD  = frmDo
 
 total_area   = drwIW * drwID * nDrw
 total_volume = drwIW * drwID * (drwHt * nDrwT + drwHm * nDrwM + drwHb * nDrwB)
+
 # ---------------------------------------------------------------------------
 # FRAME DISPLAY
 # ---------------------------------------------------------------------------
@@ -253,21 +252,23 @@ with col3:
     st.metric("Height", f"{trlH:.0f} mm")
 
 with st.expander("Details"):
+    st.subheader("Frame")
+    col1, col2, col3 = st.columns(3)
+    col1.caption("Inner Width");  col1.write(f"**{frmWi:.0f} mm**")
+    col2.caption("Inner Depth");  col2.write(f"**{frmDi:.0f} mm**")
+    col3.caption("Inner Height"); col3.write(f"**{frmHi:.0f} mm**")
+
     st.subheader("Drawers")
-    col1, col2 = st.columns(2)
-    with col1:
-        st.metric("Width", f"{drwIW:.0f} mm")
-        st.metric("Drawer Area",   f"{total_area / 1e6:.1f} m²")
-    with col2:
-        st.metric("Depth", f"{drwID:.0f} mm")
-        st.metric("Drawer Volume", f"{total_volume / 1e6:.0f} dm³")
+    col1, col2, col3, col4 = st.columns(4)
+    col1.caption("Inner Width");       col1.write(f"**{drwIW:.0f} mm**")
+    col2.caption("Inner Depth");       col2.write(f"**{drwID:.0f} mm**")
+    col3.caption("Total Area");        col3.write(f"**{total_area / 1e6:.1f} m²**")
+    col4.caption("Total Volume");      col4.write(f"**{total_volume / 1e6:.1f} dm³**")
 
     st.subheader("Assembly")
     col1, col2 = st.columns(2)
-    with col1:
-        st.metric("Total Drawer Spacing", f"{sDrwTot:.0f} mm")
-    with col2:
-        st.metric("Tabletop Working Height", f"{trlH:.0f} mm")
+    col1.caption("Drawer Spacing");       col1.write(f"**{sDrwTot:.0f} mm**")
+    col2.caption("Tabletop Work Height"); col2.write(f"**{trlH:.0f} mm**")
 
 # ---------------------------------------------------------------------------
 # CUTLIST
@@ -275,12 +276,22 @@ with st.expander("Details"):
 st.subheader("Cutlist of Wood and Profiles")
 
 drawer_parts = generate_drawer_cutlist(result, nDrwT, nDrwM, nDrwB)
+frame_parts  = generate_frame_cutlist(frmHo, frmWo, frmDo, tUprights, uprights)
 
-all_parts = drawer_parts + [
-    {"Part": "Profile Verticals",   "L (mm)": frmHo, "W (mm)": tUprights, "Qty": 4},
-    {"Part": "Profile Horizontals", "L (mm)": frmWo, "W (mm)": tUprights, "Qty": 4},
-    {"Part": "Plywood Tabletop",    "L (mm)": frmWo + 50, "W (mm)": frmDo, "Qty": 1},
-]
+all_parts = drawer_parts + frame_parts
 
-df = pd.DataFrame(all_parts)
-st.dataframe(df, width='stretch', hide_index=True)
+df = pd.DataFrame(all_parts)[["Belongs To", "Part", "Material", "L (mm)", "W (mm)", "Qty"]]
+
+st.dataframe(
+    df,
+    hide_index=True,
+    width='stretch',
+    column_config={
+        "Belongs To": st.column_config.TextColumn("Belongs To", width="medium"),
+        "Part":       st.column_config.TextColumn("Part",       width="small"),
+        "Material":   st.column_config.TextColumn("Material",   width="medium"),
+        "L (mm)":     st.column_config.NumberColumn("L (mm)",   width="small"),
+        "W (mm)":     st.column_config.Column("W (mm)",         width="small"),
+        "Qty":        st.column_config.NumberColumn("Qty",      width="small"),
+    }
+)
