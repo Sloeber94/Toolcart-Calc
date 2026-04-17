@@ -2,7 +2,7 @@ import os
 import pandas as pd
 import streamlit as st
 from config import DEFAULTS, SLIDER_RANGES, NUMBER_RANGES, PRICE_FIELDS, SLIDE_DATA, SLIDE_FEATURES, SLIDE_LOAD_CLASSES, PROFILE_WIDTHS, FRAME_CLEAR_DEFAULTS, CONSTANTS
-from cutlist_calculator import calculate_drawer, generate_drawer_cutlist, generate_frame_cutlist, calculate_toolbox_frame
+from cutlist_calculator import calculate_drawer, generate_drawer_cutlist, generate_frame_cutlist, calculate_toolbox_frame, calculate_costs
 
 
 def load_css():
@@ -140,6 +140,29 @@ with st.sidebar:
         st.caption(f"Price per pair: {cSlides} CHF",     text_alignment="center")
         st.caption(f"Slide Thickness: {tSlides:.1f} mm", text_alignment="center")
 
+        st.subheader("Accessories")
+        col1, col2 = st.columns(2)
+        with col1:
+            mn, mx, step = NUMBER_RANGES["cTbl"]
+            st.session_state["cTbl"] = st.number_input(
+                "Tabletop per m²",
+                min_value=float(mn), max_value=float(mx),
+                value=float(st.session_state["cTbl"]),
+                step=float(step),
+                format="%.0f",
+                key="cTbl_price",
+            )
+        with col2:
+            mn, mx, step = NUMBER_RANGES["cCastor"]
+            st.session_state["cCastor"] = st.number_input(
+                "Castor per piece",
+                min_value=float(mn), max_value=float(mx),
+                value=float(st.session_state["cCastor"]),
+                step=float(step),
+                format="%.1f",
+                key="cCastor_price",
+            )
+
         st.subheader("Dimensions")
         col1, col2 = st.columns([2, 3])
         with col1:
@@ -202,6 +225,8 @@ cBox     = st.session_state.cBox
 cBase    = st.session_state.cBase
 c4040    = st.session_state.c4040
 c4080    = st.session_state.c4080
+cTbl     = st.session_state.cTbl
+cCastor  = st.session_state.cCastor
 hCastors = st.session_state.hCastors
 tTbl     = st.session_state.tTbl
 nDrwT    = st.session_state.nDrwT
@@ -275,8 +300,8 @@ with st.expander("Details"):
 # ---------------------------------------------------------------------------
 st.subheader("Cutlist of Wood and Profiles")
 
-drawer_parts = generate_drawer_cutlist(result, nDrwT, nDrwM, nDrwB,tBox,tBase)
-frame_parts  = generate_frame_cutlist(frmHo, frmWo, frmDo, tUprights, uprights,tTbl)
+drawer_parts = generate_drawer_cutlist(result, nDrwT, nDrwM, nDrwB)
+frame_parts  = generate_frame_cutlist(frmHo, frmWo, frmDo, tUprights, uprights)
 
 all_parts = drawer_parts + frame_parts
 
@@ -285,14 +310,53 @@ df = pd.DataFrame(all_parts)[["Belongs To", "Part", "Material", "L (mm)", "W (mm
 st.dataframe(
     df,
     hide_index=True,
-    width='stretch',
-    height='content',
+    use_container_width=True,
+    height="content",
     column_config={
-        "Belongs To": st.column_config.TextColumn("Belongs To", width="content"),
-        "Part":       st.column_config.TextColumn("Part",       width="content"),
-        "Material":   st.column_config.TextColumn("Material",   width="content"),
-        "L (mm)":     st.column_config.NumberColumn("L (mm)",   width="content", format="%.1f"),
-        "W (mm)":     st.column_config.NumberColumn("W (mm)",   width="content", format="%.1f"),
-        "Qty":        st.column_config.NumberColumn("Qty",      width="content"),
+        "Belongs To": st.column_config.TextColumn("Belongs To", width="medium"),
+        "Part":       st.column_config.TextColumn("Part",       width="small"),
+        "Material":   st.column_config.TextColumn("Material",   width="medium"),
+        "L (mm)":     st.column_config.NumberColumn("L (mm)",   width="small"),
+        "W (mm)":     st.column_config.Column("W (mm)",         width="small"),
+        "Qty":        st.column_config.NumberColumn("Qty",      width="small"),
     }
 )
+
+# ---------------------------------------------------------------------------
+# COST BREAKDOWN
+# ---------------------------------------------------------------------------
+st.subheader("Cost Breakdown")
+
+costs = calculate_costs(
+    result=result,
+    frame_parts=frame_parts,
+    nDrwT=nDrwT, nDrwM=nDrwM, nDrwB=nDrwB,
+    nDrw=nDrw,
+    cSlides=cSlides,
+    c4040=c4040, c4080=c4080,
+    cTbl=cTbl, cCastor=cCastor,
+    frmWo=frmWo, frmDo=frmDo, tTbl=tTbl,
+)
+
+cost_df = pd.DataFrame([
+    {"Category": "Drawer Slides",  "Detail": f"{nDrw} pairs × {cSlides} CHF",                                           "Cost (CHF)": costs['cost_slides']},
+    {"Category": "Frame Profiles", "Detail": f"Aluminium profiles ({uprights} uprights + 4040 horizontals)",             "Cost (CHF)": costs['cost_frame']},
+    {"Category": "Drawers",        "Detail": f"Panel wood + base wood ({nDrw} drawers)",                                 "Cost (CHF)": costs['cost_drawers']},
+    {"Category": "Accessories",    "Detail": f"Tabletop ({cTbl} CHF/m²) + Castors (4 × {cCastor} CHF)",                 "Cost (CHF)": costs['cost_accessories']},
+])
+
+st.dataframe(
+    cost_df,
+    hide_index=True,
+    use_container_width=True,
+    height="content",
+    column_config={
+        "Category":   st.column_config.TextColumn("Category",   width="medium"),
+        "Detail":     st.column_config.TextColumn("Detail",      width="large"),
+        "Cost (CHF)": st.column_config.NumberColumn("Cost (CHF)", width="small", format="%.2f"),
+    }
+)
+
+col1, col2, col3 = st.columns(3)
+with col2:
+    st.metric("Total Estimated Cost", f"CHF {costs['total']:.2f}")

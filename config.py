@@ -34,10 +34,12 @@ DEFAULTS = {
     "sDrw":       2,  # spacing per drawer
 
     # Prices (CHF)
-    "cBox":    25.0,  # drawer panels per m²
-    "cBase":   15.0,  # drawer base per m²
-    "c4040":   15.0,  # 4040 profile per m
-    "c4080":   20.0,  # 4080 profile per m
+    "cBox":      25.0,  # drawer panels per m²
+    "cBase":     15.0,  # drawer base per m²
+    "c4040":     15.0,  # 4040 profile per m
+    "c4080":     20.0,  # 4080 profile per m
+    "cTbl":      60.0,  # tabletop per m²
+    "cCastor":    5.0,  # castor per piece
 
     # Gridfinity
     "gf_mode": False,
@@ -67,22 +69,24 @@ SLIDER_RANGES = {
 # NUMBER INPUT RANGES  (min, max, step)
 # ---------------------------------------------------------------------------
 NUMBER_RANGES = {
-    "sFront":  (0,   100,   1),
-    "sRear":   (0,   100,   1),
-    "cBox":    (0.0, 200.0, 1.0),
-    "cBase":   (0.0, 200.0, 1.0),
-    "c4040":   (0.0, 200.0, 1.0),
-    "c4080":   (0.0, 200.0, 1.0),
+    "sFront":   (0,   100,   1),
+    "sRear":    (0,   100,   1),
+    "cBox":     (0.0, 200.0, 1.0),
+    "cBase":    (0.0, 200.0, 1.0),
+    "c4040":    (0.0, 200.0, 1.0),
+    "c4080":    (0.0, 200.0, 1.0),
+    "cTbl":     (0.0, 500.0, 1.0),
+    "cCastor":  (0.0, 100.0, 0.5),
 }
 
 # ---------------------------------------------------------------------------
 # PRICE FIELDS  (label, session_state key, default)
 # ---------------------------------------------------------------------------
 PRICE_FIELDS = [
-    ("Plywood per m²", "cBox",  25),
-    ("Plywood base per m²",   "cBase", 15),
-    ("4040 profiles per m",  "c4040", 15),
-    ("4080 profiles per m",  "c4080", 20),
+    ("Plywood per m²",       "cBox",   25),
+    ("Plywood base per m²",  "cBase",  15),
+    ("4040 profiles per m",  "c4040",  15),
+    ("4080 profiles per m",  "c4080",  20),
 ]
 
 # ---------------------------------------------------------------------------
@@ -103,7 +107,7 @@ SLIDE_DATA = {
     ("Push-to-Open",   "Heavy"):  (24, 28.0),
 }
 
-SLIDE_FEATURES    = ["Basic", "Bumper", "Soft-Close", "Push-to-Open"]
+SLIDE_FEATURES     = ["Basic", "Bumper", "Soft-Close", "Push-to-Open"]
 SLIDE_LOAD_CLASSES = ["Light", "Medium", "Heavy"]
 
 # ---------------------------------------------------------------------------
