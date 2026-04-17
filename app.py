@@ -16,13 +16,8 @@ load_css()
 
 st.set_page_config(page_title="Drawer Calculator", layout="wide")
 
-st.markdown(
-    '<h1><a href="https://verschraubt.ch" target="_blank" style="text-decoration:none; color:inherit;">Verschraubt.ch - Tool Trolley Project Calculator</a></h1>',
-    unsafe_allow_html=True,
-)
-st.markdown(
-    "Fully customizable by you, just enter your requirements and let it calculate your materials."
-)
+st.title("Tool Cart Calculator")
+st.markdown("Fully customizable by you, just enter your requirements and let it calculate your materials.")
 
 # ---------------------------------------------------------------------------
 # SESSION STATE — initialise once from DEFAULTS
@@ -75,6 +70,8 @@ def mmSlider(label, key, minVal, maxVal, stepVal, showMm=False, gf=True):
 # SIDEBAR
 # ---------------------------------------------------------------------------
 with st.sidebar:
+    st.image("assets/banner.png", width='stretch')
+   
     st.header("Configuration")
 
     st.checkbox("Gridfinity Mode", key="gf_mode")
@@ -118,7 +115,6 @@ with st.sidebar:
     # ── TAB 1: CONSTANTS ────────────────────────────────────────────────────
     with tabs[1]:
         st.subheader("Prices")
-
         for i in range(0, len(PRICE_FIELDS), 2):
             col1, col2 = st.columns(2)
             for col, (label, key, defVal) in zip((col1, col2), PRICE_FIELDS[i:i+2]):
@@ -219,7 +215,12 @@ w4080    = PROFILE_WIDTHS["4080"]
 # ---------------------------------------------------------------------------
 # CALCULATIONS
 # ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
 result = calculate_drawer(drwW, drwD, drwHt, drwHm, drwHb, tBox, sDado, cBox, cBase)
+
+dims         = result['dimensions']
+drwIW        = dims['drwL']
+drwID        = dims['drwW']
 
 nDrw        = nDrwT + nDrwM + nDrwB
 slides_cost = nDrw * cSlides
@@ -237,24 +238,36 @@ trlH  = frmHo + hCastors + tTbl
 trlW  = frmWo
 trlD  = frmDo
 
+total_area   = drwIW * drwID * nDrw
+total_volume = drwIW * drwID * (drwHt * nDrwT + drwHm * nDrwM + drwHb * nDrwB)
 # ---------------------------------------------------------------------------
 # FRAME DISPLAY
 # ---------------------------------------------------------------------------
 st.subheader("Tool Trolley Frame Dimensions")
 col1, col2, col3 = st.columns(3)
 with col1:
-    st.metric("Frame outer Width",  f"{frmWo:.0f} mm")
-    st.metric("Frame inner Width",  f"{frmWi:.0f} mm")
+    st.metric("Width",  f"{frmWo:.0f} mm")
 with col2:
-    st.metric("Frame outer Depth",  f"{frmDo:.0f} mm")
-    st.metric("Frame inner Depth",  f"{frmDi:.0f} mm")
+    st.metric("Depth",  f"{frmDo:.0f} mm")
 with col3:
-    st.metric("Frame outer Height", f"{frmHo:.0f} mm")
-    st.metric("Frame inner Height", f"{frmHi:.0f} mm")
+    st.metric("Height", f"{trlH:.0f} mm")
 
-with st.expander("Frame Details"):
-    st.info(f"Total drawer spacing: {sDrwTot:.0f} mm")
-    st.info(f"Tabletop working height: {trlH:.0f} mm")
+with st.expander("Details"):
+    st.subheader("Drawers")
+    col1, col2 = st.columns(2)
+    with col1:
+        st.metric("Width", f"{drwIW:.0f} mm")
+        st.metric("Drawer Area",   f"{total_area / 1e6:.1f} m²")
+    with col2:
+        st.metric("Depth", f"{drwID:.0f} mm")
+        st.metric("Drawer Volume", f"{total_volume / 1e6:.0f} dm³")
+
+    st.subheader("Assembly")
+    col1, col2 = st.columns(2)
+    with col1:
+        st.metric("Total Drawer Spacing", f"{sDrwTot:.0f} mm")
+    with col2:
+        st.metric("Tabletop Working Height", f"{trlH:.0f} mm")
 
 # ---------------------------------------------------------------------------
 # CUTLIST
@@ -270,4 +283,4 @@ all_parts = drawer_parts + [
 ]
 
 df = pd.DataFrame(all_parts)
-st.dataframe(df, use_container_width=True)
+st.dataframe(df, width='stretch', hide_index=True)
