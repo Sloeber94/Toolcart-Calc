@@ -394,7 +394,7 @@ cost_df = pd.DataFrame([
 st.dataframe(
     cost_df,
     hide_index=True,
-    use_container_width=True,
+    width="content",
     height="content",
     column_config={
         "Category":    st.column_config.TextColumn("Category",    width="content"),
@@ -423,7 +423,7 @@ parts = build_assembly(
     drwW=drwW, drwD=drwD,
     drwHt=drwHt, drwHm=drwHm, drwHb=drwHb,
     tBox=tBox, sDrw=sDrw,
-    w4040=w4040,
+    w4040=w4040, sRear=sRear, sFront=sFront,
 )
 
 render_3d(parts, height=650)

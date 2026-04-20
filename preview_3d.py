@@ -10,7 +10,7 @@ def build_assembly(
     drwW, drwD,
     drwHt, drwHm, drwHb,
     tBox, sDrw,
-    w4040,
+    w4040, sFront, sRear,
 ):
     """
     Build a list of 3D box/cylinder parts for the Three.js renderer.
@@ -71,12 +71,18 @@ def build_assembly(
     )
 
     # outer drawer dimensions
-    drwOW = drwW   # outer width  = frmWi clearance handled by sDrw
-    drwOD = drwD
+    drw_box_w = frmWi - 2 * sDrw
+    drw_box_d = drwD + 2 * tBox
+
+    # drawer position
     drw_x = tV_x + sDrw
-    drw_z = tV_z + sDrw
-    drw_box_w = frmWo - 2 * tV_x - 2 * sDrw
-    drw_box_d = frmDo - 2 * tV_z - 2 * sDrw
+    drw_z = sRear
+
+    # safety clamp for preview only
+    if drw_z < 0:
+        drw_z = 0
+    if drw_z + drw_box_d > frmDo:
+        drw_box_d = max(0, frmDo - drw_z)
 
     colors = {"top": "#D7CCC8", "mid": "#BCAAA4", "bottom": "#A1887F"}
     y_cursor = tH + sDrw   # start above bottom horizontal
@@ -181,12 +187,12 @@ document.body.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x1a1a2e);
-scene.fog = new THREE.Fog(0x1a1a2e, 3000, 8000);
+scene.fog = null;
 
 const camera = new THREE.PerspectiveCamera(45, W / H, 1, 20000);
 
 // ── Lighting ──────────────────────────────────────────────────────────────
-scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+scene.add(new THREE.AmbientLight(0xffffff, 1));
 const dir1 = new THREE.DirectionalLight(0xffffff, 0.8);
 dir1.position.set(1000, 2000, 1000);
 dir1.castShadow = true;
