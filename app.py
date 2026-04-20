@@ -351,7 +351,7 @@ base_area_m2   = sum(result[t]['A_base_m2']   * q for t, q in [('low', nDrwT), (
 len_4040_m     = sum(p['Qty'] * p['L (mm)'] / 1000 for p in frame_parts if p['Material'] == '4040')
 len_uprights_m = sum(p['Qty'] * p['L (mm)'] / 1000 for p in frame_parts if p['Material'] == uprights and uprights != '4040')
 
-cost_df = pd.DataFrame([
+cost_rows = [
     {
         "Category": "Frame",
         "Description": "4040 Profiles",
@@ -382,19 +382,21 @@ cost_df = pd.DataFrame([
         "Qty": f"{nDrw} pairs",
         "Cost (CHF)": cSlides * nDrw,
     },
-    {
+    *([{
         "Category": "Accessories",
         "Description": "Tabletop",
         "Qty": f"{tbl_area_m2:.2f} m\u00b2",
         "Cost (CHF)": cTbl * tbl_area_m2,
-    },
-    {
+    }] if tTbl > 0 else []),
+    *([{
         "Category": "Accessories",
         "Description": "Wheels",
         "Qty": "4 pcs",
         "Cost (CHF)": cCastor * 4,
-    },
-])
+    }] if hCastors > 0 else []),
+]
+
+cost_df = pd.DataFrame(cost_rows)
 
 st.dataframe(
     cost_df,
@@ -411,8 +413,10 @@ st.dataframe(
 
 st.metric("Total Estimated Cost", f"CHF {costs['total']:.2f}")
 st.caption(f"Slides per pair:   {cSlides} CHF",     text_alignment="center")
-st.caption(f"Tabletop per m\u00b2:   {cTbl:.0f} CHF",   text_alignment="center")
-st.caption(f"Wheels per piece:  {cCastor:.0f} CHF", text_alignment="center")
+if tTbl > 0:
+    st.caption(f"Tabletop per m\u00b2:   {cTbl:.0f} CHF",   text_alignment="center")
+if hCastors > 0:
+    st.caption(f"Wheels per piece:  {cCastor:.0f} CHF", text_alignment="center")
 
 # ---------------------------------------------------------------------------
 # 3D PREVIEW
