@@ -1,19 +1,11 @@
 import json
 
 
-def build_assembly(
-    frmWo, frmHo, frmDo,
-    frmWi, frmHi, frmDi,
-    tUprights, uprights,
-    tTbl, hCastors,
-    nDrwT, nDrwM, nDrwB,
-    drwW, drwD,
-    drwHt, drwHm, drwHb,
-    tBox, sDrw,
-    w4040, sFront, sRear,
-):
+def build_assembly(data: dict) -> list:
     """
     Build a list of 3D box/cylinder parts for the Three.js renderer.
+    All dimensions come pre-computed from cutlist_calculator — no math here.
+
     Coordinate system (Inventor-style, looking at XY front plane):
       X = width  (left -> right)
       Y = height (bottom -> top)
@@ -21,12 +13,29 @@ def build_assembly(
     Origin (0,0,0) = left, bottom-of-frame, back corner.
     Castors extend into -Y below origin.
     """
-    parts = []
-    tV_x = 40          # vertical profile width in X (always 40)
-    tV_z = tUprights   # vertical profile depth in Z (40 for 4040, 80 for 4080)
-    tH   = 40          # horizontal profile cross-section (always 40x40)
+    frmWo = data["frmWo"]
+    frmHo = data["frmHo"]
+    frmDo = data["frmDo"]
+    frmWi = data["frmWi"]
+    tUprights = data["tUprights"]
+    tTbl = data["tTbl"]
+    hCastors = data["hCastors"]
+    nDrwT = data["nDrwT"]
+    nDrwM = data["nDrwM"]
+    nDrwB = data["nDrwB"]
+    drwD = data["drwD"]
+    drwHt = data["drwHt"]
+    drwHm = data["drwHm"]
+    drwHb = data["drwHb"]
+    tBox = data["tBox"]
+    sDrw = data["sDrw"]
+    sRear = data["sRear"]
 
-    # VERTICALS (4x)
+    parts = []
+    tV_x = 40
+    tV_z = tUprights
+    tH = 40
+
     for xi in [0, frmWo - tV_x]:
         for zi in [0, frmDo - tV_z]:
             parts.append({
@@ -37,7 +46,6 @@ def build_assembly(
                 "w": tV_x, "h": frmHo, "d": tV_z,
             })
 
-    # HORIZONTALS W — left/right spanning (4x: top+bottom x front+back)
     h_w_len = frmWo - 2 * tV_x
     for yi in [0, frmHo - tH]:
         for zi in [0, frmDo - tH]:
@@ -49,7 +57,6 @@ def build_assembly(
                 "w": h_w_len, "h": tH, "d": tH,
             })
 
-    # HORIZONTALS D — front/back spanning (4x: top+bottom x left+right)
     h_d_len = frmDo - 2 * tV_z
     for yi in [0, frmHo - tH]:
         for xi in [0, frmWo - tH]:
@@ -61,29 +68,24 @@ def build_assembly(
                 "w": tH, "h": tH, "d": h_d_len,
             })
 
-    # DRAWERS — stacked bottom->top
     drawer_types = (
         [("bottom", drwHb)] * nDrwB +
-        [("mid",    drwHm)] * nDrwM +
-        [("top",    drwHt)] * nDrwT
+        [("mid", drwHm)] * nDrwM +
+        [("top", drwHt)] * nDrwT
     )
 
-    # outer drawer dimensions
     drw_box_w = frmWi - 2 * sDrw
     drw_box_d = drwD + 2 * tBox
-
-    # drawer position — anchored from rear clearance
     drw_x = tV_x + sDrw
     drw_z = sRear
 
-    # safety clamp for preview only
     if drw_z < 0:
         drw_z = 0
     if drw_z + drw_box_d > frmDo:
         drw_box_d = max(0, frmDo - drw_z)
 
     colors = {"top": "#D7CCC8", "mid": "#BCAAA4", "bottom": "#A1887F"}
-    y_cursor = tH + sDrw   # start above bottom horizontal
+    y_cursor = tH + sDrw
 
     for dtype, dh in drawer_types:
         parts.append({
@@ -95,7 +97,6 @@ def build_assembly(
         })
         y_cursor += dh + sDrw
 
-    # TABLETOP — only when thickness > 0
     if tTbl > 0:
         parts.append({
             "name": "Tabletop",
@@ -105,27 +106,22 @@ def build_assembly(
             "w": frmWo, "h": tTbl, "d": frmDo,
         })
 
-    # CASTORS — only when height > 0
-    # Wheel circle sits in XY plane (axis = Z), 40 mm thick in Z.
-    # 80% of hCastors = wheel diameter, 20% = gap between wheel top and frame bottom.
     if hCastors > 0:
-        gap      = hCastors * 0.2          # distance from frame bottom to wheel top
-        wheel_r  = (hCastors * 0.8) / 2   # wheel radius
-        wheel_t  = 40                      # wheel thickness in Z direction
-        # wheel centre Y: frame is at Y=0, wheel top is at Y = -gap,
-        # so wheel centre is at Y = -gap - wheel_r
+        gap = hCastors * 0.2
+        wheel_r = (hCastors * 0.8) / 2
+        wheel_t = 40
         wheel_cy = -gap - wheel_r
 
         for xi, zi in [
-            (tV_x / 2,        tV_z / 2 + wheel_t / 2),
-            (frmWo - tV_x/2,  tV_z / 2 + wheel_t / 2),
-            (tV_x / 2,        frmDo - tV_z/2 - wheel_t / 2),
-            (frmWo - tV_x/2,  frmDo - tV_z/2 - wheel_t / 2),
+            (tV_x / 2, tV_z / 2 + wheel_t / 2),
+            (frmWo - tV_x / 2, tV_z / 2 + wheel_t / 2),
+            (tV_x / 2, frmDo - tV_z / 2 - wheel_t / 2),
+            (frmWo - tV_x / 2, frmDo - tV_z / 2 - wheel_t / 2),
         ]:
             parts.append({
                 "name": "Castor",
                 "group": "castors",
-                "type": "wheel",        # Z-axis cylinder (circle in XY plane)
+                "type": "wheel",
                 "color": "#212121",
                 "x": xi,
                 "y": wheel_cy,
@@ -201,8 +197,6 @@ renderer.setClearColor(0x000000, 0);
 scene.fog = null;
 
 const camera = new THREE.PerspectiveCamera(45, W / H, 1, 20000);
-
-// ── Lighting ──────────────────────────────────────────────────────────────
 scene.add(new THREE.AmbientLight(0xffffff, 1));
 const dir1 = new THREE.DirectionalLight(0xffffff, 0.8);
 dir1.position.set(1000, 2000, 1000);
@@ -221,8 +215,6 @@ const meshMat = (hex) => new THREE.MeshLambertMaterial({ color: new THREE.Color(
 for (const p of PARTS) {
   let mesh;
   if (p.type === 'wheel') {
-    // Cylinder with circle in XY plane — axis along Z
-    // THREE.CylinderGeometry axis is Y by default, so rotate 90deg around X
     const geo = new THREE.CylinderGeometry(p.r, p.r, p.t, 32);
     mesh = new THREE.Mesh(geo, meshMat(p.color));
     mesh.rotation.x = Math.PI / 2;
@@ -230,7 +222,7 @@ for (const p of PARTS) {
   } else {
     const geo = new THREE.BoxGeometry(p.w, p.h, p.d);
     mesh = new THREE.Mesh(geo, meshMat(p.color));
-    mesh.position.set(p.x + p.w/2, p.y + p.h/2, p.z + p.d/2);
+    mesh.position.set(p.x + p.w / 2, p.y + p.h / 2, p.z + p.d / 2);
   }
   const edges = new THREE.LineSegments(
     new THREE.EdgesGeometry(mesh.geometry),
@@ -246,7 +238,7 @@ for (const p of PARTS) {
 
 const box = new THREE.Box3().setFromObject(scene);
 const center = box.getCenter(new THREE.Vector3());
-const size   = box.getSize(new THREE.Vector3());
+const size = box.getSize(new THREE.Vector3());
 const maxDim = Math.max(size.x, size.y, size.z);
 
 camera.position.set(center.x + maxDim, center.y + maxDim * 0.6, center.z + maxDim * 1.2);
@@ -260,8 +252,8 @@ controls.dampingFactor = 0.08;
 controls.update();
 
 for (const [id, key] of [
-  ['tog-frame','frame'], ['tog-drawers','drawers'],
-  ['tog-tabletop','tabletop'], ['tog-castors','castors']
+  ['tog-frame', 'frame'], ['tog-drawers', 'drawers'],
+  ['tog-tabletop', 'tabletop'], ['tog-castors', 'castors']
 ]) {
   document.getElementById(id).addEventListener('change', e => {
     groups[key].forEach(m => m.visible = e.target.checked);
