@@ -1,7 +1,7 @@
 import os
 import pandas as pd
 import streamlit as st
-from config import DEFAULTS, SLIDER_RANGES, NUMBER_RANGES, PRICE_FIELDS, SLIDE_DATA, SLIDE_FEATURES, SLIDE_LOAD_CLASSES, PROFILE_WIDTHS, FRAME_CLEAR_DEFAULTS, CONSTANTS
+from config import DEFAULTS, SLIDER_RANGES, NUMBER_RANGES, PRICE_FIELDS, SLIDE_DATA, SLIDE_FEATURES, SLIDE_LOAD_CLASSES, PROFILE_WIDTHS, CONSTANTS
 from cutlist_calculator import calculate_drawer, generate_drawer_cutlist, generate_frame_cutlist, calculate_toolbox_frame, calculate_costs
 from preview_3d import build_assembly, render_3d
 
@@ -109,8 +109,6 @@ with st.sidebar:
                 key=f"{key}_qty",
             )
 
-
-
     # ── TAB 1: CONSTANTS ────────────────────────────────────────────────────
     with tabs[1]:
         st.subheader("Prices")
@@ -154,7 +152,6 @@ with st.sidebar:
         cSlides, tSlides = SLIDE_DATA.get((selectedFeature, selectedLoad), (10, 19.0))
         cTbl    = st.session_state.cTbl
         cCastor = st.session_state.cCastor
-
 
         st.subheader("Dimensions")
         col1, col2 = st.columns([2, 3])
@@ -242,9 +239,9 @@ w4080    = PROFILE_WIDTHS["4080"]
 # ---------------------------------------------------------------------------
 result = calculate_drawer(drwW, drwD, drwHt, drwHm, drwHb, tBox, sDado, cBox, cBase)
 
-dims         = result['dimensions']
-drwIW        = dims['drwL']
-drwID        = dims['drwW']
+dims  = result['dimensions']
+drwIW = dims['drwL']
+drwID = dims['drwW']
 
 nDrw        = nDrwT + nDrwM + nDrwB
 slides_cost = nDrw * cSlides
@@ -280,21 +277,30 @@ with col3:
 with st.expander("Details"):
     st.subheader("Frame")
     col1, col2, col3 = st.columns(3)
-    col1.caption("Inner Width");  col1.write(f"**{frmWi:.0f} mm**")
-    col2.caption("Inner Depth");  col2.write(f"**{frmDi:.0f} mm**")
-    col3.caption("Inner Height"); col3.write(f"**{frmHi:.0f} mm**")
+    col1.caption("Inner Width")
+    col1.write(f"**{frmWi:.0f} mm**")
+    col2.caption("Inner Depth")
+    col2.write(f"**{frmDi:.0f} mm**")
+    col3.caption("Inner Height")
+    col3.write(f"**{frmHi:.0f} mm**")
 
     st.subheader("Drawers")
     col1, col2, col3, col4 = st.columns(4)
-    col1.caption("Inner Width");       col1.write(f"**{drwIW:.0f} mm**")
-    col2.caption("Inner Depth");       col2.write(f"**{drwID:.0f} mm**")
-    col3.caption("Total Area");        col3.write(f"**{total_area / 1e6:.1f} m²**")
-    col4.caption("Total Volume");      col4.write(f"**{total_volume / 1e6:.1f} dm³**")
+    col1.caption("Inner Width")
+    col1.write(f"**{drwIW:.0f} mm**")
+    col2.caption("Inner Depth")
+    col2.write(f"**{drwID:.0f} mm**")
+    col3.caption("Total Area")
+    col3.write(f"**{total_area / 1e6:.1f} m\u00b2**")
+    col4.caption("Total Volume")
+    col4.write(f"**{total_volume / 1e6:.1f} dm\u00b3**")
 
     st.subheader("Assembly")
     col1, col2 = st.columns(2)
-    col1.caption("Drawer Spacing");       col1.write(f"**{sDrwTot:.0f} mm**")
-    col2.caption("Tabletop Work Height"); col2.write(f"**{trlH:.0f} mm**")
+    col1.caption("Drawer Spacing")
+    col1.write(f"**{sDrwTot:.0f} mm**")
+    col2.caption("Tabletop Work Height")
+    col2.write(f"**{trlH:.0f} mm**")
 
 # ---------------------------------------------------------------------------
 # CUTLIST
@@ -311,7 +317,7 @@ df = pd.DataFrame(all_parts)[["Belongs To", "Part", "Material", "L (mm)", "W (mm
 st.dataframe(
     df,
     hide_index=True,
-    width="content",
+    use_container_width=True,
     height="content",
     column_config={
         "Belongs To": st.column_config.TextColumn("Belongs To", width="medium"),
@@ -339,8 +345,7 @@ costs = calculate_costs(
     frmWo=frmWo, frmDo=frmDo, tTbl=tTbl,
 )
 
-# Derived quantities from already-computed values
-tbl_area_m2    = ((frmWo + 50) * frmDo) * 1e-6
+tbl_area_m2    = (frmWo * frmDo) * 1e-6
 panels_area_m2 = sum(result[t]['A_panels_m2'] * q for t, q in [('low', nDrwT), ('mid', nDrwM), ('high', nDrwB)])
 base_area_m2   = sum(result[t]['A_base_m2']   * q for t, q in [('low', nDrwT), ('mid', nDrwM), ('high', nDrwB)])
 len_4040_m     = sum(p['Qty'] * p['L (mm)'] / 1000 for p in frame_parts if p['Material'] == '4040')
@@ -362,13 +367,13 @@ cost_df = pd.DataFrame([
     {
         "Category": "Wood",
         "Description": "Panel wood",
-        "Qty": f"{panels_area_m2:.2f} m²",
+        "Qty": f"{panels_area_m2:.2f} m\u00b2",
         "Cost (CHF)": cBox * panels_area_m2,
     },
     {
         "Category": "Wood",
         "Description": "Base wood",
-        "Qty": f"{base_area_m2:.2f} m²",
+        "Qty": f"{base_area_m2:.2f} m\u00b2",
         "Cost (CHF)": cBase * base_area_m2,
     },
     {
@@ -380,7 +385,7 @@ cost_df = pd.DataFrame([
     {
         "Category": "Accessories",
         "Description": "Tabletop",
-        "Qty": f"{tbl_area_m2:.2f} m²",
+        "Qty": f"{tbl_area_m2:.2f} m\u00b2",
         "Cost (CHF)": cTbl * tbl_area_m2,
     },
     {
@@ -400,15 +405,15 @@ st.dataframe(
         "Category":    st.column_config.TextColumn("Category",    width="content"),
         "Description": st.column_config.TextColumn("Description", width="content"),
         "Qty":         st.column_config.TextColumn("Qty",         width="content"),
-        "Cost (CHF)":  st.column_config.NumberColumn("Cost (CHF)",  width="content", format="%.2f"),
+        "Cost (CHF)":  st.column_config.NumberColumn("Cost (CHF)", width="content", format="%.2f"),
     }
 )
 
 st.metric("Total Estimated Cost", f"CHF {costs['total']:.2f}")
 st.caption(f"Slides per pair:   {cSlides} CHF",     text_alignment="center")
-st.caption(f"Tabletop per m²:   {cTbl:.0f} CHF",   text_alignment="center")
+st.caption(f"Tabletop per m\u00b2:   {cTbl:.0f} CHF",   text_alignment="center")
 st.caption(f"Wheels per piece:  {cCastor:.0f} CHF", text_alignment="center")
-    
+
 # ---------------------------------------------------------------------------
 # 3D PREVIEW
 # ---------------------------------------------------------------------------
