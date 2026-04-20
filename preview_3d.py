@@ -62,7 +62,6 @@ def build_assembly(
             })
 
     # DRAWERS — stacked bottom->top
-    # Stack order: bottom drawers at low Y, mid, then top at high Y
     drawer_types = (
         [("bottom", drwHb)] * nDrwB +
         [("mid",    drwHm)] * nDrwM +
@@ -73,7 +72,7 @@ def build_assembly(
     drw_box_w = frmWi - 2 * sDrw
     drw_box_d = drwD + 2 * tBox
 
-    # drawer position
+    # drawer position — anchored from rear clearance
     drw_x = tV_x + sDrw
     drw_z = sRear
 
@@ -96,31 +95,44 @@ def build_assembly(
         })
         y_cursor += dh + sDrw
 
-    # TABLETOP
-    parts.append({
-        "name": "Tabletop",
-        "group": "tabletop",
-        "color": "#5D4037",
-        "x": 0, "y": frmHo, "z": 0,
-        "w": frmWo, "h": tTbl, "d": frmDo,
-    })
-
-    # CASTORS (4x cylinders) — centre under verticals
-    castor_r = 25
-    for xi, zi in [
-        (tV_x / 2,       tV_z / 2),
-        (frmWo - tV_x/2, tV_z / 2),
-        (tV_x / 2,       frmDo - tV_z/2),
-        (frmWo - tV_x/2, frmDo - tV_z/2),
-    ]:
+    # TABLETOP — only when thickness > 0
+    if tTbl > 0:
         parts.append({
-            "name": "Castor",
-            "group": "castors",
-            "type": "cylinder",
-            "color": "#212121",
-            "x": xi, "y": -hCastors, "z": zi,
-            "r": castor_r, "h": hCastors,
+            "name": "Tabletop",
+            "group": "tabletop",
+            "color": "#5D4037",
+            "x": 0, "y": frmHo, "z": 0,
+            "w": frmWo, "h": tTbl, "d": frmDo,
         })
+
+    # CASTORS — only when height > 0
+    # Wheel circle sits in XY plane (axis = Z), 40 mm thick in Z.
+    # 80% of hCastors = wheel diameter, 20% = gap between wheel top and frame bottom.
+    if hCastors > 0:
+        gap      = hCastors * 0.2          # distance from frame bottom to wheel top
+        wheel_r  = (hCastors * 0.8) / 2   # wheel radius
+        wheel_t  = 40                      # wheel thickness in Z direction
+        # wheel centre Y: frame is at Y=0, wheel top is at Y = -gap,
+        # so wheel centre is at Y = -gap - wheel_r
+        wheel_cy = -gap - wheel_r
+
+        for xi, zi in [
+            (tV_x / 2,        tV_z / 2 + wheel_t / 2),
+            (frmWo - tV_x/2,  tV_z / 2 + wheel_t / 2),
+            (tV_x / 2,        frmDo - tV_z/2 - wheel_t / 2),
+            (frmWo - tV_x/2,  frmDo - tV_z/2 - wheel_t / 2),
+        ]:
+            parts.append({
+                "name": "Castor",
+                "group": "castors",
+                "type": "wheel",        # Z-axis cylinder (circle in XY plane)
+                "color": "#212121",
+                "x": xi,
+                "y": wheel_cy,
+                "z": zi,
+                "r": wheel_r,
+                "t": wheel_t,
+            })
 
     return parts
 
@@ -207,10 +219,13 @@ const meshMat = (hex) => new THREE.MeshLambertMaterial({ color: new THREE.Color(
 
 for (const p of PARTS) {
   let mesh;
-  if (p.type === 'cylinder') {
-    const geo = new THREE.CylinderGeometry(p.r, p.r, p.h, 16);
+  if (p.type === 'wheel') {
+    // Cylinder with circle in XY plane — axis along Z
+    // THREE.CylinderGeometry axis is Y by default, so rotate 90deg around X
+    const geo = new THREE.CylinderGeometry(p.r, p.r, p.t, 32);
     mesh = new THREE.Mesh(geo, meshMat(p.color));
-    mesh.position.set(p.x, p.y + p.h / 2, p.z);
+    mesh.rotation.x = Math.PI / 2;
+    mesh.position.set(p.x, p.y, p.z);
   } else {
     const geo = new THREE.BoxGeometry(p.w, p.h, p.d);
     mesh = new THREE.Mesh(geo, meshMat(p.color));
