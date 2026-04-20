@@ -130,7 +130,7 @@ with st.sidebar:
         col1, col2 = st.columns(2)
         with col1:
             st.session_state["hCastors"] = st.number_input(
-                "Castors Height (mm)",
+                "Castors Diameter (mm)",
                 min_value=0, max_value=200, step=1,
                 value=st.session_state["hCastors"],
                 key="hCastors_input",
@@ -259,7 +259,7 @@ frmHi, frmWi, frmDo, sDrwTot = frame.values()
 frmHo = frmHi + 2 * w4040
 frmWo = frmWi + 2 * w4040
 frmDi = frmDo - 2 * tUprights
-trlH  = frmHo + hCastors + tTbl
+trlH  = frmHo + hCastors *1.2  + tTbl
 trlW  = frmWo
 trlD  = frmDo
 
@@ -270,7 +270,7 @@ total_volume = drwIW * drwID * (drwHt * nDrwT + drwHm * nDrwM + drwHb * nDrwB)
 # FRAME DISPLAY
 # ---------------------------------------------------------------------------
 st.subheader("Tool Trolley Frame Dimensions")
-col1, col2, col3 = st.columns(3)
+col1, col2, col3 = st.columns(3, width=500)
 with col1:
     st.metric("Width",  f"{frmWo:.0f} mm")
 with col2:
@@ -278,7 +278,7 @@ with col2:
 with col3:
     st.metric("Height", f"{trlH:.0f} mm")
 
-with st.expander("Details"):
+with st.expander("Details", width=500):
     st.subheader("Frame")
     col1, col2, col3 = st.columns(3)
     col1.caption("Inner Width")
@@ -321,15 +321,15 @@ df = pd.DataFrame(all_parts)[["Belongs To", "Part", "Material", "L (mm)", "W (mm
 st.dataframe(
     df,
     hide_index=True,
-    use_container_width=True,
     height="content",
+    width="content",
     column_config={
-        "Belongs To": st.column_config.TextColumn("Belongs To", width="medium"),
-        "Part":       st.column_config.TextColumn("Part",       width="small"),
-        "Material":   st.column_config.TextColumn("Material",   width="medium"),
-        "L (mm)":     st.column_config.NumberColumn("L (mm)",   width="small"),
-        "W (mm)":     st.column_config.Column("W (mm)",         width="small"),
-        "Qty":        st.column_config.NumberColumn("Qty",      width="small"),
+        "Belongs To": st.column_config.TextColumn("Belongs To"),
+        "Part":       st.column_config.TextColumn("Part"),
+        "Material":   st.column_config.TextColumn("Material"),
+        "L (mm)":     st.column_config.NumberColumn("L (mm)"),
+        "W (mm)":     st.column_config.Column("W (mm)"),
+        "Qty":        st.column_config.NumberColumn("Qty"),
     }
 )
 
@@ -348,56 +348,51 @@ costs = calculate_costs(
     cTbl=cTbl, cCastor=cCastor,
     frmWo=frmWo, frmDo=frmDo, tTbl=tTbl,
     hCastors=hCastors,
+    uprights=uprights,
 )
-
-tbl_area_m2    = (frmWo * frmDo) * 1e-6
-panels_area_m2 = sum(result[t]['A_panels_m2'] * q for t, q in [('low', nDrwT), ('mid', nDrwM), ('high', nDrwB)])
-base_area_m2   = sum(result[t]['A_base_m2']   * q for t, q in [('low', nDrwT), ('mid', nDrwM), ('high', nDrwB)])
-len_4040_m     = sum(p['Qty'] * p['L (mm)'] / 1000 for p in frame_parts if p['Material'] == '4040')
-len_uprights_m = sum(p['Qty'] * p['L (mm)'] / 1000 for p in frame_parts if p['Material'] == uprights and uprights != '4040')
 
 cost_rows = [
     {
         "Category": "Frame",
         "Description": "4040 Profiles",
-        "Qty": f"{len_4040_m:.2f} m",
-        "Cost (CHF)": c4040 * len_4040_m,
+        "Qty": f"{costs['len_4040_m']:.2f} m",
+        "Cost (CHF)": costs['len_4040_m'] * c4040,
     },
     *([{
         "Category": "Frame",
         "Description": f"{uprights} Profiles",
-        "Qty": f"{len_uprights_m:.2f} m",
-        "Cost (CHF)": c4080 * len_uprights_m,
+        "Qty": f"{costs['len_uprights_m']:.2f} m",
+        "Cost (CHF)": costs['len_uprights_m'] * c4080,
     }] if uprights != '4040' else []),
     {
         "Category": "Wood",
-        "Description": "Panel wood",
-        "Qty": f"{panels_area_m2:.2f} m\u00b2",
-        "Cost (CHF)": cBox * panels_area_m2,
+        "Description": f"Panel wood {tBox}mm",
+        "Qty": f"{costs['panels_area_m2']:.2f} m\u00b2",
+        "Cost (CHF)": cBox * costs['panels_area_m2'],
     },
     {
         "Category": "Wood",
-        "Description": "Base wood",
-        "Qty": f"{base_area_m2:.2f} m\u00b2",
-        "Cost (CHF)": cBase * base_area_m2,
+        "Description": f"Base wood {tBase}mm",
+        "Qty": f"{costs['base_area_m2']:.2f} m\u00b2",
+        "Cost (CHF)": cBase * costs['base_area_m2'],
     },
     {
         "Category": "Accessories",
         "Description": "Drawer Slides",
         "Qty": f"{nDrw} pairs",
-        "Cost (CHF)": cSlides * nDrw,
+        "Cost (CHF)": costs['cost_slides'],
     },
     *([{
         "Category": "Accessories",
-        "Description": "Tabletop",
-        "Qty": f"{tbl_area_m2:.2f} m\u00b2",
-        "Cost (CHF)": cTbl * tbl_area_m2,
+        "Description": f"Tabletop wood {tTbl}mm",
+        "Qty": f"{costs['tbl_area_m2']:.2f} m\u00b2",
+        "Cost (CHF)": costs['cost_tabletop'],
     }] if tTbl > 0 else []),
     *([{
         "Category": "Accessories",
         "Description": "Wheels",
         "Qty": "4 pcs",
-        "Cost (CHF)": cCastor * 4,
+        "Cost (CHF)": costs['cost_castors'],
     }] if hCastors > 0 else []),
 ]
 
