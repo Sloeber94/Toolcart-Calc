@@ -3,6 +3,7 @@ import pandas as pd
 import streamlit as st
 from config import DEFAULTS, SLIDER_RANGES, NUMBER_RANGES, PRICE_FIELDS, SLIDE_DATA, SLIDE_FEATURES, SLIDE_LOAD_CLASSES, PROFILE_WIDTHS, FRAME_CLEAR_DEFAULTS, CONSTANTS
 from cutlist_calculator import calculate_drawer, generate_drawer_cutlist, generate_frame_cutlist, calculate_toolbox_frame, calculate_costs
+from preview_3d import build_assembly, render_3d
 
 
 def load_css():
@@ -310,7 +311,7 @@ df = pd.DataFrame(all_parts)[["Belongs To", "Part", "Material", "L (mm)", "W (mm
 st.dataframe(
     df,
     hide_index=True,
-    use_container_width=True,
+    width="content",
     height="content",
     column_config={
         "Belongs To": st.column_config.TextColumn("Belongs To", width="medium"),
@@ -408,3 +409,21 @@ st.caption(f"Slides per pair:   {cSlides} CHF",     text_alignment="center")
 st.caption(f"Tabletop per m²:   {cTbl:.0f} CHF",   text_alignment="center")
 st.caption(f"Wheels per piece:  {cCastor:.0f} CHF", text_alignment="center")
     
+# ---------------------------------------------------------------------------
+# 3D PREVIEW
+# ---------------------------------------------------------------------------
+st.subheader("3D Preview")
+
+parts = build_assembly(
+    frmWo=frmWo, frmHo=frmHo, frmDo=frmDo,
+    frmWi=frmWi, frmHi=frmHi, frmDi=frmDi,
+    tUprights=tUprights, uprights=uprights,
+    tTbl=tTbl, hCastors=hCastors,
+    nDrwT=nDrwT, nDrwM=nDrwM, nDrwB=nDrwB,
+    drwW=drwW, drwD=drwD,
+    drwHt=drwHt, drwHm=drwHm, drwHb=drwHb,
+    tBox=tBox, sDrw=sDrw,
+    w4040=w4040,
+)
+
+render_3d(parts, height=650)
