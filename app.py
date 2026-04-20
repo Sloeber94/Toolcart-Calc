@@ -233,6 +233,10 @@ nDrwB    = st.session_state.nDrwB
 tBkt     = CONSTANTS["tBkt"]
 w4040    = PROFILE_WIDTHS["4040"]
 w4080    = PROFILE_WIDTHS["4080"]
+if hCastors == 0:
+    cCastor = 0
+if tTbl == 0:
+    cTbl = 0
 
 # ---------------------------------------------------------------------------
 # CALCULATIONS
@@ -307,8 +311,8 @@ with st.expander("Details"):
 # ---------------------------------------------------------------------------
 st.subheader("Cutlist of Wood and Profiles")
 
-drawer_parts = generate_drawer_cutlist(result, nDrwT, nDrwM, nDrwB)
-frame_parts  = generate_frame_cutlist(frmHo, frmWo, frmDo, tUprights, uprights)
+drawer_parts = generate_drawer_cutlist(result, nDrwT, nDrwM, nDrwB, tBox, tBase)
+frame_parts  = generate_frame_cutlist(frmHo, frmWo, frmDo, tUprights, uprights, tTbl)
 
 all_parts = drawer_parts + frame_parts
 
@@ -343,6 +347,7 @@ costs = calculate_costs(
     c4040=c4040, c4080=c4080,
     cTbl=cTbl, cCastor=cCastor,
     frmWo=frmWo, frmDo=frmDo, tTbl=tTbl,
+    hCastors=hCastors,
 )
 
 tbl_area_m2    = (frmWo * frmDo) * 1e-6
@@ -412,11 +417,11 @@ st.dataframe(
 )
 
 st.metric("Total Estimated Cost", f"CHF {costs['total']:.2f}")
-st.caption(f"Slides per pair:   {cSlides} CHF",     text_alignment="center")
+st.caption(f"Slides per pair:   {cSlides} CHF",     text_alignment="left")
 if tTbl > 0:
-    st.caption(f"Tabletop per m\u00b2:   {cTbl:.0f} CHF",   text_alignment="center")
+    st.caption(f"Tabletop per m\u00b2:   {cTbl:.0f} CHF",   text_alignment="left")
 if hCastors > 0:
-    st.caption(f"Wheels per piece:  {cCastor:.0f} CHF", text_alignment="center")
+    st.caption(f"Wheels per piece:  {cCastor:.0f} CHF", text_alignment="left")
 
 # ---------------------------------------------------------------------------
 # 3D PREVIEW

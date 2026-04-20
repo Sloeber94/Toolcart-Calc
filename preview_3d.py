@@ -144,7 +144,7 @@ HTML_TEMPLATE = """
 <meta charset="utf-8">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { background: #1a1a2e; overflow: hidden; }
+  body { background: transparent; overflow: hidden; }
   canvas { display: block; }
   #controls {
     position: absolute; top: 10px; left: 10px;
@@ -189,14 +189,15 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 const PARTS = __PARTS_JSON__;
 
 const W = window.innerWidth, H = window.innerHeight;
-const renderer = new THREE.WebGLRenderer({ antialias: true });
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
 renderer.setSize(W, H);
 renderer.setPixelRatio(devicePixelRatio);
 renderer.shadowMap.enabled = true;
 document.body.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x1a1a2e);
+scene.background = null;
+renderer.setClearColor(0x000000, 0);
 scene.fog = null;
 
 const camera = new THREE.PerspectiveCamera(45, W / H, 1, 20000);

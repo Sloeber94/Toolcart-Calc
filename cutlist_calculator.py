@@ -96,7 +96,7 @@ def calculate_drawer(drwL: float, drwW: float, drwHt: float, drwHm: float, drwHb
     }
 
 
-def generate_drawer_cutlist(result: Dict[str, Any], nDrwT: int, nDrwM: int, nDrwB: int) -> List[Dict]:
+def generate_drawer_cutlist(result: Dict[str, Any], nDrwT: int, nDrwM: int, nDrwB: int, tBox: int, tBase: int) -> List[Dict]:
     """Generate drawer cutlist with material and belongs-to labels."""
     all_parts = []
     dims = result['dimensions']
@@ -108,23 +108,24 @@ def generate_drawer_cutlist(result: Dict[str, Any], nDrwT: int, nDrwM: int, nDrw
     ]:
         h = result[height_key]['height']
         parts = [
-            {'Part': 'Fronts', 'Qty': 2 * qty, 'L (mm)': dims['drwL'], 'W (mm)': h,           'Material': 'Drawer Panel Wood', 'Belongs To': belongs_to},
-            {'Part': 'Sides',  'Qty': 2 * qty, 'L (mm)': dims['Do'],   'W (mm)': h,           'Material': 'Drawer Panel Wood', 'Belongs To': belongs_to},
-            {'Part': 'Base',   'Qty': qty,     'L (mm)': dims['Wb'],   'W (mm)': dims['Db'],  'Material': 'Drawer Base Wood',  'Belongs To': belongs_to},
+            {'Part': 'Fronts', 'Qty': 2 * qty, 'L (mm)': dims['drwL'], 'W (mm)': h,           'Material': f'{tBox}mm Wood', 'Belongs To': belongs_to},
+            {'Part': 'Sides',  'Qty': 2 * qty, 'L (mm)': dims['Do'],   'W (mm)': h,           'Material': f'{tBox}mm Wood', 'Belongs To': belongs_to},
+            {'Part': 'Base',   'Qty': qty,     'L (mm)': dims['Wb'],   'W (mm)': dims['Db'],  'Material': f'{tBase}mm Wood',  'Belongs To': belongs_to},
         ]
         all_parts.extend(parts)
 
     return all_parts
 
 
-def generate_frame_cutlist(frmHo: float, frmWo: float, frmDo: float, tUprights: int, uprights_profile: str) -> List[Dict]:
-    """Generate frame profile cutlist with material and belongs-to labels."""
-    return [
-        {'Part': 'Verticals',          'Qty': 4, 'L (mm)': frmHo,      'W (mm)': '',    'Material': uprights_profile,    'Belongs To': 'Frame'},
-        {'Part': 'Horizontals (W)',     'Qty': 4, 'L (mm)': frmWo,      'W (mm)': '',    'Material': '4040',              'Belongs To': 'Frame'},
-        {'Part': 'Horizontals (D)',     'Qty': 4, 'L (mm)': frmDo,      'W (mm)': '',    'Material': '4040',              'Belongs To': 'Frame'},
-        {'Part': 'Tabletop',           'Qty': 1, 'L (mm)': frmWo, 'W (mm)': frmDo, 'Material': 'Drawer Panel Wood', 'Belongs To': 'Frame'},
+def generate_frame_cutlist(frmHo, frmWo, frmDo, tUprights, uprights_profile, tTbl):
+    parts = [
+        {'Part': 'Verticals',      'Qty': 4, 'L (mm)': frmHo, 'W (mm)': '',    'Material': uprights_profile,    'Belongs To': 'Frame'},
+        {'Part': 'Horizontals (W)','Qty': 4, 'L (mm)': frmWo, 'W (mm)': '',    'Material': '4040',              'Belongs To': 'Frame'},
+        {'Part': 'Horizontals (D)','Qty': 4, 'L (mm)': frmDo, 'W (mm)': '',    'Material': '4040',              'Belongs To': 'Frame'},
     ]
+    if tTbl > 0:
+        parts.append({'Part': 'Tabletop', 'Qty': 1, 'L (mm)': frmWo, 'W (mm)': frmDo, 'Material': f'{tTbl}mm Wood', 'Belongs To': 'Frame'})
+    return parts
 
 
 def calculate_costs(
@@ -134,8 +135,9 @@ def calculate_costs(
     nDrw: int,
     cSlides: float,
     c4040: float, c4080: float,
-    cTbl: float, cCastor: int,
+    cTbl: float, cCastor: float,
     frmWo: float, frmDo: float, tTbl: float,
+    hCastors: float,
 ) -> Dict[str, Any]:
     """
     Calculate full cost breakdown.
@@ -162,11 +164,14 @@ def calculate_costs(
         cost_drawers += (tier['cost_panels'] + tier['cost_base']) * qty
 
     # --- Accessories ---
-    # Tabletop: area = (frmWo + 50mm overhang) * frmDo, price per m²
-    tbl_area_m2 = ((frmWo + 50) * frmDo) * 1e-6
+    # Tabletop: area * price/m², zero when tTbl == 0
+    tbl_area_m2   = ((frmWo + 50) * frmDo) * 1e-6 if tTbl > 0 else 0.0
     cost_tabletop = tbl_area_m2 * cTbl
-    # Castors: 4 wheels
-    cost_castors = 4 * cCastor
+
+    # Castors: 4 wheels, zero when hCastors == 0
+    cCastor_eff  = max(0.0, 0.06 * hCastors - 2.5) if hCastors > 0 else 0.0
+    cost_castors = 4 * cCastor_eff
+
     cost_accessories = cost_tabletop + cost_castors
 
     total = cost_slides + cost_frame + cost_drawers + cost_accessories
