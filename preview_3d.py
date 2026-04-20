@@ -277,8 +277,7 @@ window.addEventListener('resize', () => {
 """
 
 
-def render_3d(parts: list, height: int = 600) -> None:
-    """Inject Three.js HTML into Streamlit with parts data."""
+def render_3d(parts: list, height: int = 600, width: int = None) -> None:
     import streamlit.components.v1 as components
     html = HTML_TEMPLATE.replace("__PARTS_JSON__", json.dumps(parts))
-    components.html(html, height=height, scrolling=False)
+    components.html(html, height=height, width=width, scrolling=False)

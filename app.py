@@ -83,7 +83,7 @@ with st.sidebar:
     drwDstep = 42 if gf_mode else 50
     drwHstep = 21 if gf_mode else 1
 
-    tabs = st.tabs(["Input", "Constants"])
+    tabs = st.tabs(["Input", "Constants", "Guide"])
 
     # ── TAB 0: INPUT ────────────────────────────────────────────────────────
     with tabs[0]:
@@ -205,6 +205,34 @@ with st.sidebar:
                 help="Default: <50% of plywood thickness",
             )
 
+    # -- Tab 2: Guide --
+    with tabs[2]:
+        st.markdown("""
+        ### How to use
+        
+        **Input tab**
+        - Set drawer dimensions in mm or Gridfinity units
+        - Configure quantities per drawer tier
+        
+        **Constants tab**
+        - Set material prices (CHF/m² for wood, CHF/m for profiles)
+        - Configure accessories: castors diameter, tabletop thickness
+            - Set to 0 disable
+        - Set drawer slide type and load class
+        - Adjust wood thicknesses and clearances
+        
+        **Cutlist**
+        - All parts listed with material, dimensions and quantity
+        - Ready to take to the workshop or send to a supplier
+        
+        **Cost Breakdown**
+        - Itemised costs per category
+        - Total estimated cost in CHF
+        
+        **3D Preview**
+        - Toggle frame, drawers, tabletop and castors on/off
+        - Scroll to zoom, drag to rotate, right-drag to pan
+        """)
 # ---------------------------------------------------------------------------
 # READ ALL VALUES FROM SESSION STATE
 # ---------------------------------------------------------------------------
@@ -251,8 +279,8 @@ nDrw        = nDrwT + nDrwM + nDrwB
 slides_cost = nDrw * cSlides
 
 frame = calculate_toolbox_frame(
-    result, tSlides, sRear, sFront,
-    nDrwT, nDrwM, nDrwB, nDrw, sDrw, tBkt,
+result, tSlides, sRear, sFront,
+nDrwT, nDrwM, nDrwB, nDrw, sDrw, tBkt,
 )
 
 frmHi, frmWi, frmDo, sDrwTot = frame.values()
@@ -269,6 +297,8 @@ total_volume = drwIW * drwID * (drwHt * nDrwT + drwHm * nDrwM + drwHb * nDrwB)
 # ---------------------------------------------------------------------------
 # FRAME DISPLAY
 # ---------------------------------------------------------------------------
+
+
 st.subheader("Tool Trolley Frame Dimensions")
 col1, col2, col3 = st.columns(3, width=500)
 with col1:
@@ -306,7 +336,32 @@ with st.expander("Details", width=500):
     col2.caption("Tabletop Work Height")
     col2.write(f"**{trlH:.0f} mm**")
 
+
+
 # ---------------------------------------------------------------------------
+# 3D PREVIEW
+# ---------------------------------------------------------------------------
+st.subheader("3D Preview")
+
+parts = build_assembly({
+    "frmWo": frmWo, "frmHo": frmHo, "frmDo": frmDo,
+    "frmWi": frmWi, "frmHi": frmHi,
+    "tUprights": tUprights,
+    "tTbl": tTbl, "hCastors": hCastors,
+    "nDrwT": nDrwT, "nDrwM": nDrwM, "nDrwB": nDrwB,
+    "drwD": drwD,
+    "drwHt": drwHt, "drwHm": drwHm, "drwHb": drwHb,
+    "tBox": tBox, "sDrw": sDrw,
+    "sRear": sRear,
+})
+
+render_3d(parts, height=650, width=800)
+
+
+
+
+
+    # ---------------------------------------------------------------------------
 # CUTLIST
 # ---------------------------------------------------------------------------
 st.subheader("Cutlist of Wood and Profiles")
@@ -417,22 +472,3 @@ if tTbl > 0:
     st.caption(f"Tabletop per m\u00b2:   {cTbl:.0f} CHF",   text_alignment="left")
 if hCastors > 0:
     st.caption(f"Wheels per piece:  {cCastor:.0f} CHF", text_alignment="left")
-
-# ---------------------------------------------------------------------------
-# 3D PREVIEW
-# ---------------------------------------------------------------------------
-st.subheader("3D Preview")
-
-parts = build_assembly(
-    frmWo=frmWo, frmHo=frmHo, frmDo=frmDo,
-    frmWi=frmWi, frmHi=frmHi, frmDi=frmDi,
-    tUprights=tUprights, uprights=uprights,
-    tTbl=tTbl, hCastors=hCastors,
-    nDrwT=nDrwT, nDrwM=nDrwM, nDrwB=nDrwB,
-    drwW=drwW, drwD=drwD,
-    drwHt=drwHt, drwHm=drwHm, drwHb=drwHb,
-    tBox=tBox, sDrw=sDrw,
-    w4040=w4040, sRear=sRear, sFront=sFront,
-)
-
-render_3d(parts, height=650)
