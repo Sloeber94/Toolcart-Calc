@@ -83,10 +83,52 @@ with st.sidebar:
     drwDstep = 42 if gf_mode else 50
     drwHstep = 21 if gf_mode else 1
 
-    tabs = st.tabs(["Input", "Constants", "Guide"])
+    tabs = st.tabs(["Guide", "Input", "Constants"])
+
+    # -- Tab 2: Guide --
+    with tabs[0]:
+        st.markdown("""
+        ### Introduction
+        
+        This tool lets you design a tool trolley fully customised to your needs. The basic principle is to build a frame from aluminium extrusion profiles and drawer boxes from wood. You can adjust specific details in the Constants tab to suit your requirements.
+
+        The frame uses 4040 profiles; for heavier-duty applications, 4080 uprights are available. Drawer boxes can be made from two different materials — one for the fronts and sides, and another for the base. The base is typically made from thinner material and can also be something more economical than plywood, such as OSB.
+
+        The castor wheels are included mainly to help you estimate the finished height of your trolley, particularly if you plan to use the top surface as a work surface. By defining your timber thickness and dado depth, the calculator automatically generates a cutlist — showing every panel you need along with quantities — making it straightforward to order materials and get everything cut to size, ready for assembly.
+
+        If anything is unclear or you'd like some assistance, feel free to reach out by [e-mail](mailto:social@verschraubt.ch!) or
+        [Whatsapp](https://wa.me/41782161123) !            
+         
+        
+         
+        ### How to use
+        
+        **Input tab**
+        - Set drawer dimensions in mm or Gridfinity units
+        - Configure quantities per drawer tier
+        
+        **Constants tab**
+        - Set material prices (CHF/m² for wood, CHF/m for profiles)
+        - Configure accessories: castors diameter, tabletop thickness
+            - Set to 0 disable
+        - Set drawer slide type and load class
+        - Adjust wood thicknesses and clearances
+        
+        **Cutlist**
+        - All parts listed with material, dimensions and quantity
+        - Ready to take to the workshop or send to a supplier
+        
+        **Cost Breakdown**
+        - Itemised costs per category
+        - Total estimated cost in CHF
+        
+        **3D Preview**
+        - Toggle frame, drawers, tabletop and castors on/off
+        - Scroll to zoom, drag to rotate, right-drag to pan
+        """)
 
     # ── TAB 0: INPUT ────────────────────────────────────────────────────────
-    with tabs[0]:
+    with tabs[1]:
         mmSlider("Drawer Width",  "drwW", *SLIDER_RANGES["drwW"][:2],  drwWstep, showMm=True)
         mmSlider("Drawer Depth",  "drwD", *SLIDER_RANGES["drwD"][:2],  drwDstep, showMm=True)
 
@@ -110,7 +152,7 @@ with st.sidebar:
             )
 
     # ── TAB 1: CONSTANTS ────────────────────────────────────────────────────
-    with tabs[1]:
+    with tabs[2]:
         st.subheader("Prices")
         for i in range(0, len(PRICE_FIELDS), 2):
             col1, col2 = st.columns(2)
@@ -205,34 +247,7 @@ with st.sidebar:
                 help="Default: <50% of plywood thickness",
             )
 
-    # -- Tab 2: Guide --
-    with tabs[2]:
-        st.markdown("""
-        ### How to use
-        
-        **Input tab**
-        - Set drawer dimensions in mm or Gridfinity units
-        - Configure quantities per drawer tier
-        
-        **Constants tab**
-        - Set material prices (CHF/m² for wood, CHF/m for profiles)
-        - Configure accessories: castors diameter, tabletop thickness
-            - Set to 0 disable
-        - Set drawer slide type and load class
-        - Adjust wood thicknesses and clearances
-        
-        **Cutlist**
-        - All parts listed with material, dimensions and quantity
-        - Ready to take to the workshop or send to a supplier
-        
-        **Cost Breakdown**
-        - Itemised costs per category
-        - Total estimated cost in CHF
-        
-        **3D Preview**
-        - Toggle frame, drawers, tabletop and castors on/off
-        - Scroll to zoom, drag to rotate, right-drag to pan
-        """)
+
 # ---------------------------------------------------------------------------
 # READ ALL VALUES FROM SESSION STATE
 # ---------------------------------------------------------------------------
@@ -383,7 +398,7 @@ st.dataframe(
         "Part":       st.column_config.TextColumn("Part"),
         "Material":   st.column_config.TextColumn("Material"),
         "L (mm)":     st.column_config.NumberColumn("L (mm)"),
-        "W (mm)":     st.column_config.Column("W (mm)"),
+        "W (mm)":     st.column_config.NumberColumn("W (mm)"),
         "Qty":        st.column_config.NumberColumn("Qty"),
     }
 )
